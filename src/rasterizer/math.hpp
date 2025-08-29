@@ -27,5 +27,4 @@ namespace rasterizer
     {
         return static_cast<T>(static_cast<int>(value) + (value > static_cast<T>(0) && value != static_cast<T>(static_cast<int>(value))));
     }
-
 }

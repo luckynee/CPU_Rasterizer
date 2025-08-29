@@ -143,26 +143,26 @@ namespace rasterizer
 
     // Calculate Dot Product of a and b
     // Product of their lengths, times the cosine of the angle between them
-    inline float dot(vector2f a, vector2f b) { return a.x * b.x + a.y * b.y; }
-    inline float dot(vector3f a, vector3f b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+    inline float dot(const vector2f &a, const vector2f &b) { return a.x * b.x + a.y * b.y; }
+    inline float dot(const vector3f &a, const vector3f &b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 
     // Calculate the perpendicular vector ( 90 degress clockwise from given vector)
-    inline vector2f perpendicular(vector2f v) { return vector2f{v.y, -v.x}; }
+    inline vector2f perpendicular(const vector2f &v) { return vector2f{v.y, -v.x}; }
 
     // Check if the point on the right side of line
-    inline bool point_on_right_side(vector2f a, vector2f b, vector2f p)
+    inline bool point_on_right_side(const vector2f &a, const vector2f &b, const vector2f &p)
     {
         vector2f ap = p - a;
         vector2f abPerp = perpendicular(b - a);
         return dot(abPerp, ap) >= 0;
     }
 
-    inline bool point_in_triangle(vector2f a, vector2f b, vector2f c, vector2f p)
+    // Check if the specific point inside the triangle
+    inline bool point_in_triangle(const vector2f &a, const vector2f &b, const vector2f &c, const vector2f &p)
     {
         bool sideAB = point_on_right_side(a, b, p);
         bool sideBC = point_on_right_side(b, c, p);
         bool sideCA = point_on_right_side(c, a, p);
-        return sideAB == sideBC && sideBC == sideCA;
+        return sideAB && sideBC && sideBC && sideCA;
     }
-
 }
