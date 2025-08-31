@@ -32,7 +32,6 @@ namespace rasterizer
             ihat_yaw = {std::cos(yaw), 0, -std::sin(yaw)};
             jhat_yaw = {0, 1, 0};
             khat_yaw = {std::sin(yaw), 0, std::cos(yaw)};
-
             ihat_pitch = {1, 0, 0};
             jhat_pitch = {0, std::cos(pitch), -std::sin(pitch)};
             khat_pitch = {0, std::sin(pitch), std::cos(pitch)};
@@ -74,15 +73,26 @@ namespace rasterizer
     };
 
     // TODO -> Fix to NDC later
-    inline vector2f vertex_to_screen(const vector3f &vertex, transform &transform, const vector2f &screen)
+    // TODO -> Maybe move this to camera class
+    inline vector2f vertex_to_screen(const vector3f &vertex, transform &transform, const vector2f &screen, float fov)
     {
         vector3f world_pos = transform.to_world_position(vertex);
 
-        float screen_height_world = 5.0f;
+        // Convert FOV from degrees to radians
+        float fov_rad = fov * M_PI / 180.0f;
+        float screen_height_world = std::tan(fov_rad / 2) * 2;
         float pixel_per_world_unit = screen.y / screen_height_world / world_pos.z;
 
         vector2f pixel_offset = vector2f(world_pos.x, world_pos.y) * pixel_per_world_unit;
         return screen / 2 + pixel_offset;
+    }
+
+    // TODO -> Move this later
+    inline float calculate_dolly_zoom_fov(float fovInitial, float zPosInitial, float zPosCurrent)
+    {
+        float fov_in_rad = fovInitial * M_PI / 180.0f;
+        float desired_half_height = std::tan(fov_in_rad / 2) * zPosInitial / zPosCurrent;
+        return std::atan(desired_half_height) * 2 * 180.0f / M_PI;
     }
 
 }

@@ -50,7 +50,8 @@ int main()
     SDL_Surface *draw_surface = nullptr;
 
     // Init Data
-    std::string objPath = "../resource/model/model.obj";
+    float fov = 90.0f;
+    std::string objPath = "../resource/model/monkey.obj";
     std::vector<rasterizer::vector3f> modelPoints = helper::load_obj(objPath);
 
     // Create Model
@@ -96,6 +97,22 @@ int main()
                     SDL_FreeSurface(draw_surface);
                 draw_surface = nullptr;
             }
+
+            if (e.type == SDL_MOUSEWHEEL)
+            {
+                if (e.wheel.y > 0) // scroll up
+                {
+                    float last_z = modelTransform.position.z;
+                    modelTransform.position.z -= 0.1f;
+                    fov = rasterizer::calculate_dolly_zoom_fov(fov, last_z, modelTransform.position.z);
+                }
+                else if (e.wheel.y < 0) // scroll down
+                {
+                    float last_z = modelTransform.position.z;
+                    modelTransform.position.z += 0.1f;
+                    fov = rasterizer::calculate_dolly_zoom_fov(fov, last_z, modelTransform.position.z);
+                }
+            }
         }
 
         if (!draw_surface)
@@ -111,13 +128,14 @@ int main()
         // Transform Model
         modelTransform.yaw += 0.005f;
         modelTransform.pitch += 0.003f;
+        std::cout << "Z = " << modelTransform.position.z << " Fov = " << fov << std::endl;
 
         // Draw Model
         for (unsigned int i = 0; i < myModel.vertices.size(); i += 3)
         {
-            rasterizer::vector2f a = rasterizer::vertex_to_screen(myModel.vertices[i + 0], modelTransform, rasterizer::vector2f{width, height});
-            rasterizer::vector2f b = rasterizer::vertex_to_screen(myModel.vertices[i + 1], modelTransform, rasterizer::vector2f{width, height});
-            rasterizer::vector2f c = rasterizer::vertex_to_screen(myModel.vertices[i + 2], modelTransform, rasterizer::vector2f{width, height});
+            rasterizer::vector2f a = rasterizer::vertex_to_screen(myModel.vertices[i + 0], modelTransform, rasterizer::vector2f{width, height}, fov);
+            rasterizer::vector2f b = rasterizer::vertex_to_screen(myModel.vertices[i + 1], modelTransform, rasterizer::vector2f{width, height}, fov);
+            rasterizer::vector2f c = rasterizer::vertex_to_screen(myModel.vertices[i + 2], modelTransform, rasterizer::vector2f{width, height}, fov);
 
             // Triangle bounds
             float minX = rasterizer::min(rasterizer::min(a.x, b.x), c.x);
