@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.14)
 
 project(CPU_Rasterizer)
 
+# Comment this 2 line when not profiling
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -36,6 +40,21 @@ else()
 endif()
 
 add_executable(${PROJECT_NAME} ${MY_SOURCES})
+
+# Optimization flags
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+#
+#   Note: Enable optimization flags for release builds
+#   make -DCMAKE_BUILD_TYPE=Release build/
+#
+
+# Enable Optimisation in release
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(${PROJECT_NAME} PRIVATE -O3)
+endif()
 
 # Link SDL2 libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL_TARGET})

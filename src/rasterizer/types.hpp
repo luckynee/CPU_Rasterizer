@@ -51,6 +51,11 @@ namespace rasterizer
         {
             return vector3f{x + other.x, y + other.y, z + other.z};
         }
+
+        explicit operator vector2f() const
+        {
+            return vector2f{x, y};
+        }
     };
 
     struct vector4f
@@ -149,20 +154,41 @@ namespace rasterizer
     // Calculate the perpendicular vector ( 90 degress clockwise from given vector)
     inline vector2f perpendicular(const vector2f &v) { return vector2f{v.y, -v.x}; }
 
-    // Check if the point on the right side of line
-    inline bool point_on_right_side(const vector2f &a, const vector2f &b, const vector2f &p)
+    // Calculate area of triangle ABC (positive if clockwise, otherwise negative)
+    inline float signed_triangle_area(const vector2f &a, const vector2f &b, const vector2f &c)
     {
-        vector2f ap = p - a;
-        vector2f abPerp = perpendicular(b - a);
-        return dot(abPerp, ap) >= 0;
+        float acx = c.x - a.x;
+        float acy = c.y - a.y;
+
+        float abx = b.x - a.x;
+        float aby = b.y - a.y;
+
+        // perpendicular(b - a)
+        float ab_perp_x = aby;
+        float ab_perp_y = -abx;
+
+        // dot(ac, ab_perp)
+        float dot = acx * ab_perp_x + acy * ab_perp_y;
+
+        return dot / 2.0f;
     }
 
     // Check if the specific point inside the triangle
-    inline bool point_in_triangle(const vector2f &a, const vector2f &b, const vector2f &c, const vector2f &p)
+    inline bool point_in_triangle(const vector2f &a, const vector2f &b, const vector2f &c, const vector2f &p, vector3f &weights)
     {
-        bool sideAB = point_on_right_side(a, b, p);
-        bool sideBC = point_on_right_side(b, c, p);
-        bool sideCA = point_on_right_side(c, a, p);
-        return sideAB && sideBC && sideBC && sideCA;
+        float areaABP = signed_triangle_area(a, b, p);
+        float areaBCP = signed_triangle_area(b, c, p);
+        float areaCAP = signed_triangle_area(c, a, p);
+        bool in_triangle = areaABP >= 0 && areaBCP >= 0 && areaCAP >= 0;
+
+        // Weighting factors (barycentric coordinates)
+        float total_area = (areaABP + areaBCP + areaCAP);
+        float inv_area_sum = 1 / total_area;
+        float weightAB = areaBCP * inv_area_sum;
+        float weightBC = areaCAP * inv_area_sum;
+        float weightCA = areaABP * inv_area_sum;
+        weights = vector3f{weightAB, weightBC, weightCA};
+
+        return in_triangle && total_area > 0;
     }
 }

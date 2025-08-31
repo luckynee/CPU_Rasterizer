@@ -6,10 +6,20 @@
 
 namespace rasterizer
 {
+
+    struct triangle_data
+    {
+        vector3f v3a, v3b, v3c; // screen-space vertices
+        vector2f v2a, v2b, v2c; // To avoid Conversion
+        float minX, maxX, minY, maxY;
+        // Add more as needed (color, normal, etc.)
+    };
+
     struct model
     {
         std::vector<vector3f> vertices;
         std::vector<vector3f> triangleCols;
+        std::vector<triangle_data> triangles;
 
         model(std::vector<vector3f> verts, std::vector<vector3f> triCols)
             : vertices(std::move(verts)), triangleCols(std::move(triCols)) {}
@@ -74,7 +84,8 @@ namespace rasterizer
 
     // TODO -> Fix to NDC later
     // TODO -> Maybe move this to camera class
-    inline vector2f vertex_to_screen(const vector3f &vertex, transform &transform, const vector2f &screen, float fov)
+    inline vector3f
+    vertex_to_screen(const vector3f &vertex, transform &transform, const vector2f &screen, float fov)
     {
         vector3f world_pos = transform.to_world_position(vertex);
 
@@ -84,7 +95,8 @@ namespace rasterizer
         float pixel_per_world_unit = screen.y / screen_height_world / world_pos.z;
 
         vector2f pixel_offset = vector2f(world_pos.x, world_pos.y) * pixel_per_world_unit;
-        return screen / 2 + pixel_offset;
+        vector2f vertex_screen = screen / 2 + pixel_offset;
+        return {vertex_screen.x, vertex_screen.y, world_pos.z};
     }
 
     // TODO -> Move this later

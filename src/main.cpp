@@ -84,6 +84,15 @@ int main()
         v = v - centroid;
     }
 
+    // TODO -> maybe move this somwhere
+    // Depth Buffer
+    std::vector<float> depth_buffer(width * height, std::numeric_limits<float>::infinity());
+
+    // FPS
+    std::uint32_t last_time = SDL_GetTicks();
+    int frame_count = 0;
+    float fps = 0.0f;
+
     // Main loop
     while (!quit)
     {
@@ -121,45 +130,113 @@ int main()
             SDL_SetSurfaceBlendMode(draw_surface, SDL_BLENDMODE_NONE);
         }
 
-        // Clear Screen
+        // TODO -> maybe move this somwhere , and fix so not creating new buffer every frame
+        // Clear Color Buffer
         std::uint32_t *pixels = static_cast<std::uint32_t *>(draw_surface->pixels);
         std::fill(pixels, pixels + (width * height), 0x00000000);
 
-        // Transform Model
-        modelTransform.yaw += 0.005f;
-        modelTransform.pitch += 0.003f;
-        std::cout << "Z = " << modelTransform.position.z << " Fov = " << fov << std::endl;
+        // Clear Depth Buffer
+        std::fill(depth_buffer.begin(), depth_buffer.end(), std::numeric_limits<float>::infinity());
 
-        // Draw Model
+        // Transform Model
+        // modelTransform.yaw += 0.005f;
+        modelTransform.pitch -= 0.005f;
+
+        // Fill triangle data
+        myModel.triangles.clear();
         for (unsigned int i = 0; i < myModel.vertices.size(); i += 3)
         {
-            rasterizer::vector2f a = rasterizer::vertex_to_screen(myModel.vertices[i + 0], modelTransform, rasterizer::vector2f{width, height}, fov);
-            rasterizer::vector2f b = rasterizer::vertex_to_screen(myModel.vertices[i + 1], modelTransform, rasterizer::vector2f{width, height}, fov);
-            rasterizer::vector2f c = rasterizer::vertex_to_screen(myModel.vertices[i + 2], modelTransform, rasterizer::vector2f{width, height}, fov);
+            rasterizer::vector3f v0 = rasterizer::vertex_to_screen(myModel.vertices[i], modelTransform, {width, height}, fov);
+            rasterizer::vector3f v1 = rasterizer::vertex_to_screen(myModel.vertices[i + 1], modelTransform, {width, height}, fov);
+            rasterizer::vector3f v2 = rasterizer::vertex_to_screen(myModel.vertices[i + 2], modelTransform, {width, height}, fov);
+
+            rasterizer::vector2f p0 = static_cast<rasterizer::vector2f>(v0);
+            rasterizer::vector2f p1 = static_cast<rasterizer::vector2f>(v1);
+            rasterizer::vector2f p2 = static_cast<rasterizer::vector2f>(v2);
 
             // Triangle bounds
-            float minX = rasterizer::min(rasterizer::min(a.x, b.x), c.x);
-            float minY = rasterizer::min(rasterizer::min(a.y, b.y), c.y);
-            float maxX = rasterizer::max(rasterizer::max(a.x, b.x), c.x);
-            float maxY = rasterizer::max(rasterizer::max(a.y, b.y), c.y);
-            // Clamp to screen bounds
-            minX = rasterizer::max(0.0f, rasterizer::min(static_cast<float>(width - 1), minX));
-            maxX = rasterizer::max(0.0f, rasterizer::min(static_cast<float>(width - 1), maxX));
-            minY = rasterizer::max(0.0f, rasterizer::min(static_cast<float>(height - 1), minY));
-            maxY = rasterizer::max(0.0f, rasterizer::min(static_cast<float>(height - 1), maxY));
+            float minX = rasterizer::min(rasterizer::min(p0.x, p1.x), p2.x);
+            float minY = rasterizer::min(rasterizer::min(p0.y, p1.y), p2.y);
+            float maxX = rasterizer::max(rasterizer::max(p0.x, p1.x), p2.x);
+            float maxY = rasterizer::max(rasterizer::max(p0.y, p1.y), p2.y);
 
-            for (int y = static_cast<int>(minY); y <= static_cast<int>(maxY); ++y)
+            myModel.triangles.emplace_back(rasterizer::triangle_data{v0, v1, v2, p0, p1, p2, minX, maxX, minY, maxY});
+        }
+
+        // Draw each pixel
+        for (unsigned int i = 0; i < myModel.triangles.size(); ++i)
+        {
+            const auto &triangle = myModel.triangles[i];
+
+            // Rasterize triangle within its bounding box
+            int x_start = rasterizer::clamp(static_cast<int>(std::floor(triangle.minX)), 0, width - 1);
+            int x_end = rasterizer::clamp(static_cast<int>(std::ceil(triangle.maxX)), 0, width - 1);
+            int y_start = rasterizer::clamp(static_cast<int>(std::floor(triangle.minY)), 0, height - 1);
+            int y_end = rasterizer::clamp(static_cast<int>(std::ceil(triangle.maxY)), 0, height - 1);
+
+            for (int y = y_start; y <= y_end; ++y)
             {
-                for (int x = static_cast<int>(minX); x <= static_cast<int>(maxX); ++x)
+                for (int x = x_start; x <= x_end; ++x)
                 {
-                    rasterizer::vector2f p{static_cast<float>(x), static_cast<float>(y)};
-                    if (rasterizer::point_in_triangle(a, b, c, p))
+                    rasterizer::vector2f p{static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f}; // center of pixel
+                    rasterizer::vector3f weight{0.0f, 0.0f, 0.0f};
+
+                    if (rasterizer::point_in_triangle(triangle.v2a, triangle.v2b, triangle.v2c, p, weight))
                     {
-                        rasterizer::color4ub col = rasterizer::to_color4ub(myModel.triangleCols[i / 3]);
-                        pixels[y * width + x] = rasterizer::to_uint32(col);
+                        // Interpolate depth
+                        float interpolated_z = weight.x * triangle.v3a.z + weight.y * triangle.v3b.z + weight.z * triangle.v3c.z;
+
+                        int idx = y * width + x;
+                        if (interpolated_z < depth_buffer[idx])
+                        {
+                            depth_buffer[idx] = interpolated_z;
+
+                            rasterizer::color4ub color = rasterizer::to_color4ub(myModel.triangleCols[i]);
+                            pixels[idx] = rasterizer::to_uint32(color);
+                        }
                     }
                 }
             }
+        }
+
+        // // Find min/max depth (excluding infinity)
+        // float min_depth = std::numeric_limits<float>::infinity();
+        // float max_depth = 0.0f;
+        // for (float d : depth_buffer)
+        // {
+        //     if (d < min_depth)
+        //         min_depth = d;
+        //     if (d > max_depth && d < std::numeric_limits<float>::infinity())
+        //         max_depth = d;
+        // }
+
+        // // Write depth as grayscale to color buffer
+        // for (int y = 0; y < height; ++y)
+        // {
+        //     for (int x = 0; x < width; ++x)
+        //     {
+        //         int idx = y * width + x;
+        //         float d = depth_buffer[idx];
+        //         uint8_t gray = 0;
+        //         if (d < std::numeric_limits<float>::infinity())
+        //         {
+        //             float norm = (d - min_depth) / (max_depth - min_depth + 1e-6f); // avoid div by zero
+        //             gray = static_cast<uint8_t>((1.0f - norm) * 255.0f);            // near=white, far=black
+        //         }
+        //         pixels[idx] = (gray << 16) | (gray << 8) | gray | (0xFF << 24); // RGBA
+        //     }
+        // }
+
+        // Show FPS
+        frame_count++;
+        std::uint32_t current_time = SDL_GetTicks();
+        if (current_time - last_time >= 1000)
+        {
+            fps = frame_count * 1000.0f / (current_time - last_time);
+            std::cout << "FPS: " << fps << "\n";
+            last_time = current_time;
+
+            frame_count = 0;
         }
 
         // Copy Data from surface

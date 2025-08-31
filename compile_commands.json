@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/home/luckym/01_Dev/01_C++Dev/CPU_Rasterizier",
+  "command": "/usr/bin/c++  -I/home/luckym/01_Dev/01_C++Dev/CPU_Rasterizier/src -isystem /usr/include/SDL2 -g -std=gnu++20 -Wall -Wextra -Wpedantic -Werror -o CMakeFiles/CPU_Rasterizer.dir/src/helper/obj_loader.cpp.o -c /home/luckym/01_Dev/01_C++Dev/CPU_Rasterizier/src/helper/obj_loader.cpp",
+  "file": "/home/luckym/01_Dev/01_C++Dev/CPU_Rasterizier/src/helper/obj_loader.cpp",
+  "output": "CMakeFiles/CPU_Rasterizer.dir/src/helper/obj_loader.cpp.o"
+},
+{
+  "directory": "/home/luckym/01_Dev/01_C++Dev/CPU_Rasterizier",
+  "command": "/usr/bin/c++  -I/home/luckym/01_Dev/01_C++Dev/CPU_Rasterizier/src -isystem /usr/include/SDL2 -g -std=gnu++20 -Wall -Wextra -Wpedantic -Werror -o CMakeFiles/CPU_Rasterizer.dir/src/main.cpp.o -c /home/luckym/01_Dev/01_C++Dev/CPU_Rasterizier/src/main.cpp",
+  "file": "/home/luckym/01_Dev/01_C++Dev/CPU_Rasterizier/src/main.cpp",
+  "output": "CMakeFiles/CPU_Rasterizer.dir/src/main.cpp.o"
+}
+]
