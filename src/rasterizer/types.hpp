@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include <rasterizer/math.hpp>
+#include "helper/math.hpp"
 
 namespace rasterizer
 {
@@ -118,19 +118,29 @@ namespace rasterizer
     to_color4ub(const vector4f &vec)
     {
         return color4ub{
-            static_cast<std::uint8_t>(clamp(vec.x * 255.0f, 0.0f, 255.0f)),
-            static_cast<std::uint8_t>(clamp(vec.y * 255.0f, 0.0f, 255.0f)),
-            static_cast<std::uint8_t>(clamp(vec.z * 255.0f, 0.0f, 255.0f)),
-            static_cast<std::uint8_t>(clamp(vec.w * 255.0f, 0.0f, 255.0f))};
+            static_cast<std::uint8_t>(math::clamp(vec.x * 255.0f, 0.0f, 255.0f)),
+            static_cast<std::uint8_t>(math::clamp(vec.y * 255.0f, 0.0f, 255.0f)),
+            static_cast<std::uint8_t>(math::clamp(vec.z * 255.0f, 0.0f, 255.0f)),
+            static_cast<std::uint8_t>(math::clamp(vec.w * 255.0f, 0.0f, 255.0f))};
     }
 
     inline color4ub to_color4ub(const vector3f &vec)
     {
         return color4ub{
-            static_cast<std::uint8_t>(clamp(vec.x * 255.0f, 0.0f, 255.0f)),
-            static_cast<std::uint8_t>(clamp(vec.y * 255.0f, 0.0f, 255.0f)),
-            static_cast<std::uint8_t>(clamp(vec.z * 255.0f, 0.0f, 255.0f)),
+            static_cast<std::uint8_t>(math::clamp(vec.x * 255.0f, 0.0f, 255.0f)),
+            static_cast<std::uint8_t>(math::clamp(vec.y * 255.0f, 0.0f, 255.0f)),
+            static_cast<std::uint8_t>(math::clamp(vec.z * 255.0f, 0.0f, 255.0f)),
             255};
+    }
+
+    // Converts vector3f (r,g,b in [0,1]) to packed uint32_t RGBA (alpha=255)
+    inline uint32_t to_uint32(const rasterizer::vector3f &v)
+    {
+        uint8_t r = static_cast<uint8_t>(math::clamp(v.x, 0.0f, 1.0f) * 255.0f);
+        uint8_t g = static_cast<uint8_t>(math::clamp(v.y, 0.0f, 1.0f) * 255.0f);
+        uint8_t b = static_cast<uint8_t>(math::clamp(v.z, 0.0f, 1.0f) * 255.0f);
+        uint8_t a = 255;
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     inline std::uint32_t to_uint32(const color4ub &col)
@@ -174,21 +184,35 @@ namespace rasterizer
     }
 
     // Check if the specific point inside the triangle
-    inline bool point_in_triangle(const vector2f &a, const vector2f &b, const vector2f &c, const vector2f &p, vector3f &weights)
+    inline bool point_in_triangle(const vector2f &a, const vector2f &b, const vector2f &c, float px, float py, vector3f &weights, float denom)
     {
-        float areaABP = signed_triangle_area(a, b, p);
-        float areaBCP = signed_triangle_area(b, c, p);
-        float areaCAP = signed_triangle_area(c, a, p);
-        bool in_triangle = areaABP >= 0 && areaBCP >= 0 && areaCAP >= 0;
 
-        // Weighting factors (barycentric coordinates)
-        float total_area = (areaABP + areaBCP + areaCAP);
-        float inv_area_sum = 1 / total_area;
-        float weightAB = areaBCP * inv_area_sum;
-        float weightBC = areaCAP * inv_area_sum;
-        float weightCA = areaABP * inv_area_sum;
-        weights = vector3f{weightAB, weightBC, weightCA};
+        // float areaABP = signed_triangle_area(a, b, p);
+        // float areaBCP = signed_triangle_area(b, c, p);
+        // float areaCAP = signed_triangle_area(c, a, p);
+        // bool in_triangle = areaABP >= 0 && areaBCP >= 0 && areaCAP >= 0;
 
-        return in_triangle && total_area > 0;
+        // // Weighting factors (barycentric coordinates)
+        // float total_area = (areaABP + areaBCP + areaCAP);
+        // float inv_area_sum = 1 / total_area;
+        // float weightAB = areaBCP * inv_area_sum;
+        // float weightBC = areaCAP * inv_area_sum;
+        // float weightCA = areaABP * inv_area_sum;
+        // weights = vector3f{weightAB, weightBC, weightCA};
+
+        // return in_triangle && total_area > 0;
+
+        if (math::abs(denom) < 1e-6f)
+            return false; // Degenerate triangle
+
+        float w0 = ((b.y - c.y) * (px - c.x) + (c.x - b.x) * (py - c.y)) / denom;
+        float w1 = ((c.y - a.y) * (px - c.x) + (a.x - c.x) * (py - c.y)) / denom;
+        float w2 = 1.0f - w0 - w1;
+
+        constexpr float epsilon = -1e-4f;
+        bool in_triangle = (w0 > epsilon) && (w1 > epsilon) && (w2 > epsilon);
+
+        weights = vector3f{w0, w1, w2};
+        return in_triangle;
     }
 }

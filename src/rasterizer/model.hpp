@@ -1,17 +1,19 @@
 #pragma once
 
-#include <rasterizer/types.hpp>
-
 #include <vector>
+
+#include "rasterizer/types.hpp"
 
 namespace rasterizer
 {
+    struct transform;
 
     struct triangle_data
     {
         vector3f v3a, v3b, v3c; // screen-space vertices
         vector2f v2a, v2b, v2c; // To avoid Conversion
         float minX, maxX, minY, maxY;
+        float denom;
         // Add more as needed (color, normal, etc.)
     };
 
@@ -23,6 +25,10 @@ namespace rasterizer
 
         model(std::vector<vector3f> verts, std::vector<vector3f> triCols)
             : vertices(std::move(verts)), triangleCols(std::move(triCols)) {}
+
+        void fill_triangle_data(const vector2f &screen, transform &modelTransform, float fov);
+
+        void draw_to_pixel(const vector2f &screen, std::vector<float> &depth_buffer, std::uint32_t *pixels);
     };
 
     struct transform
@@ -39,12 +45,12 @@ namespace rasterizer
 
         void set_basic_vector()
         {
-            ihat_yaw = {std::cos(yaw), 0, -std::sin(yaw)};
+            ihat_yaw = {math::cos(yaw), 0, -math::sin(yaw)};
             jhat_yaw = {0, 1, 0};
-            khat_yaw = {std::sin(yaw), 0, std::cos(yaw)};
+            khat_yaw = {math::sin(yaw), 0, math::cos(yaw)};
             ihat_pitch = {1, 0, 0};
-            jhat_pitch = {0, std::cos(pitch), -std::sin(pitch)};
-            khat_pitch = {0, std::sin(pitch), std::cos(pitch)};
+            jhat_pitch = {0, math::cos(pitch), -math::sin(pitch)};
+            khat_pitch = {0, math::sin(pitch), math::cos(pitch)};
         }
 
         vector3f get_ihat()
@@ -84,27 +90,8 @@ namespace rasterizer
 
     // TODO -> Fix to NDC later
     // TODO -> Maybe move this to camera class
-    inline vector3f
-    vertex_to_screen(const vector3f &vertex, transform &transform, const vector2f &screen, float fov)
-    {
-        vector3f world_pos = transform.to_world_position(vertex);
-
-        // Convert FOV from degrees to radians
-        float fov_rad = fov * M_PI / 180.0f;
-        float screen_height_world = std::tan(fov_rad / 2) * 2;
-        float pixel_per_world_unit = screen.y / screen_height_world / world_pos.z;
-
-        vector2f pixel_offset = vector2f(world_pos.x, world_pos.y) * pixel_per_world_unit;
-        vector2f vertex_screen = screen / 2 + pixel_offset;
-        return {vertex_screen.x, vertex_screen.y, world_pos.z};
-    }
+    vector3f vertex_to_screen(const vector3f &vertex, transform &transform, const vector2f &screen, float fov);
 
     // TODO -> Move this later
-    inline float calculate_dolly_zoom_fov(float fovInitial, float zPosInitial, float zPosCurrent)
-    {
-        float fov_in_rad = fovInitial * M_PI / 180.0f;
-        float desired_half_height = std::tan(fov_in_rad / 2) * zPosInitial / zPosCurrent;
-        return std::atan(desired_half_height) * 2 * 180.0f / M_PI;
-    }
-
+    float calculate_dolly_zoom_fov(float fovInitial, float zPosInitial, float zPosCurrent);
 }
