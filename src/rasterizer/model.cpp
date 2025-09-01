@@ -1,20 +1,17 @@
 #include "rasterizer/model.hpp"
 
-// TODO -> Implemented the implementation for model header
-// TODO -> Maybe move transform into model
-
 namespace rasterizer
 {
     // Model Function
-    void model::fill_triangle_data(const vector2f &screen, transform &modelTransform, float fov)
+    void model::fill_triangle_data(const vector2f &screen, float fov)
     {
-        triangles.clear();
+        triangles_data.clear();
 
         for (unsigned int i = 0; i < vertices.size(); i += 3)
         {
-            rasterizer::vector3f v0 = rasterizer::vertex_to_screen(vertices[i], modelTransform, screen, fov);
-            rasterizer::vector3f v1 = rasterizer::vertex_to_screen(vertices[i + 1], modelTransform, screen, fov);
-            rasterizer::vector3f v2 = rasterizer::vertex_to_screen(vertices[i + 2], modelTransform, screen, fov);
+            rasterizer::vector3f v0 = rasterizer::vertex_to_screen(vertices[i], model_transform, screen, fov);
+            rasterizer::vector3f v1 = rasterizer::vertex_to_screen(vertices[i + 1], model_transform, screen, fov);
+            rasterizer::vector3f v2 = rasterizer::vertex_to_screen(vertices[i + 2], model_transform, screen, fov);
 
             rasterizer::vector2f p0 = static_cast<rasterizer::vector2f>(v0);
             rasterizer::vector2f p1 = static_cast<rasterizer::vector2f>(v1);
@@ -28,15 +25,15 @@ namespace rasterizer
 
             float denom = (p1.y - p2.y) * (p0.x - p2.x) + (p2.x - p1.x) * (p0.y - p2.y);
 
-            triangles.emplace_back(rasterizer::triangle_data{v0, v1, v2, p0, p1, p2, minX, maxX, minY, maxY, denom});
+            triangles_data.emplace_back(rasterizer::triangle_data{v0, v1, v2, p0, p1, p2, minX, maxX, minY, maxY, denom});
         }
     }
 
     void model::draw_to_pixel(const vector2f &screen, std::vector<float> &depth_buffer, std::uint32_t *pixels)
     {
-        for (unsigned int i = 0; i < triangles.size(); ++i)
+        for (unsigned int i = 0; i < triangles_data.size(); ++i)
         {
-            const auto &triangle = triangles[i];
+            const auto &triangle = triangles_data[i];
 
             // Rasterize triangle within its bounding box
             int x_start = math::clamp(static_cast<int>(math::floor(triangle.minX)), 0, static_cast<int>(screen.x) - 1);
@@ -62,7 +59,7 @@ namespace rasterizer
                     if (interpolated_z < depth_buffer[idx])
                     {
                         depth_buffer[idx] = interpolated_z;
-                        pixels[idx] = rasterizer::to_uint32(triangleCols[i]);
+                        pixels[idx] = rasterizer::to_uint32(triangle_colors[i]);
                     }
                 }
             }

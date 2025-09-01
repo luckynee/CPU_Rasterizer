@@ -17,25 +17,11 @@ namespace rasterizer
         // Add more as needed (color, normal, etc.)
     };
 
-    struct model
-    {
-        std::vector<vector3f> vertices;
-        std::vector<vector3f> triangleCols;
-        std::vector<triangle_data> triangles;
-
-        model(std::vector<vector3f> verts, std::vector<vector3f> triCols)
-            : vertices(std::move(verts)), triangleCols(std::move(triCols)) {}
-
-        void fill_triangle_data(const vector2f &screen, transform &modelTransform, float fov);
-
-        void draw_to_pixel(const vector2f &screen, std::vector<float> &depth_buffer, std::uint32_t *pixels);
-    };
-
     struct transform
     {
         float yaw = 0;
         float pitch = 0;
-        vector3f position;
+        vector3f position{0, 0, 0};
 
         vector3f to_world_position(vector3f p)
         {
@@ -80,12 +66,27 @@ namespace rasterizer
         }
 
     private:
-        vector3f ihat_yaw;
-        vector3f jhat_yaw;
-        vector3f khat_yaw;
-        vector3f ihat_pitch;
-        vector3f jhat_pitch;
-        vector3f khat_pitch;
+        vector3f ihat_yaw{0, 0, 0};
+        vector3f jhat_yaw{0, 0, 0};
+        vector3f khat_yaw{0, 0, 0};
+        vector3f ihat_pitch{0, 0, 0};
+        vector3f jhat_pitch{0, 0, 0};
+        vector3f khat_pitch{0, 0, 0};
+    };
+
+    struct model
+    {
+        std::vector<vector3f> vertices;
+        std::vector<vector3f> triangle_colors;
+        transform model_transform;
+        std::vector<triangle_data> triangles_data;
+
+        model(std::vector<vector3f> verts, std::vector<vector3f> triCols, transform modelTransform)
+            : vertices(std::move(verts)), triangle_colors(std::move(triCols)), model_transform(std::move(modelTransform)) {}
+
+        void fill_triangle_data(const vector2f &screen, float fov);
+
+        void draw_to_pixel(const vector2f &screen, std::vector<float> &depth_buffer, std::uint32_t *pixels);
     };
 
     // TODO -> Fix to NDC later
