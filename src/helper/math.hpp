@@ -86,4 +86,24 @@ namespace math
     {
         return (value < 0) ? -value : value;
     }
+
+    constexpr float to_radians(float degrees)
+    {
+        return degrees * (PI / 180.0f);
+    }
+
+    constexpr float sqrt(float x)
+    {
+        if (x < 0.0f)
+            return 0.0f; // or handle error as needed
+        if (x == 0.0f)
+            return 0.0f;
+
+        float guess = x;
+        for (int i = 0; i < 10; ++i) // 10 iterations is usually enough
+        {
+            guess = 0.5f * (guess + x / guess);
+        }
+        return guess;
+    }
 }

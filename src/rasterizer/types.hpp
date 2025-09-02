@@ -42,6 +42,13 @@ namespace rasterizer
     {
         float x, y, z;
 
+        void reset_to_zero()
+        {
+            x = 0;
+            y = 0;
+            z = 0;
+        }
+
         vector3f operator-(const vector3f &other) const
         {
             return vector3f{x - other.x, y - other.y, z - other.z};
@@ -50,6 +57,32 @@ namespace rasterizer
         vector3f operator+(const vector3f &other) const
         {
             return vector3f{x + other.x, y + other.y, z + other.z};
+        }
+
+        vector3f operator*(float scalar) const
+        {
+            return vector3f{x * scalar, y * scalar, z * scalar};
+        }
+
+        vector3f operator/(float scalar) const
+        {
+            return vector3f{x / scalar, y / scalar, z / scalar};
+        }
+
+        vector3f operator+=(const vector3f &other)
+        {
+            x += other.x;
+            y += other.y;
+            z += other.z;
+            return *this;
+        }
+
+        vector3f operator-=(const vector3f &other)
+        {
+            x -= other.x;
+            y -= other.y;
+            z -= other.z;
+            return *this;
         }
 
         explicit operator vector2f() const
@@ -160,6 +193,22 @@ namespace rasterizer
     // Product of their lengths, times the cosine of the angle between them
     inline float dot(const vector2f &a, const vector2f &b) { return a.x * b.x + a.y * b.y; }
     inline float dot(const vector3f &a, const vector3f &b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+
+    inline vector2f normalized_vector(const vector2f &v)
+    {
+        float len = math::sqrt(dot(v, v));
+        if (len > 1e-6f)
+            return v / len;
+        return vector2f{0, 0};
+    }
+
+    inline vector3f normalized_vector(const vector3f &v)
+    {
+        float len = math::sqrt(dot(v, v));
+        if (len > 1e-6f)
+            return v / len;
+        return vector3f{0, 0, 0};
+    }
 
     // Calculate the perpendicular vector ( 90 degress clockwise from given vector)
     inline vector2f perpendicular(const vector2f &v) { return vector2f{v.y, -v.x}; }

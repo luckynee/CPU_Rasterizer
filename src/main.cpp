@@ -119,14 +119,34 @@ int main()
     // Depth Buffer
     std::vector<float> depth_buffer(width * height, std::numeric_limits<float>::infinity());
 
+    // Camera
+    rasterizer::camera cam;
+    cam.camera_transform.position = {0, 0, -5.0f};
+    constexpr float cam_speed = 5.5f;
+    constexpr float mouse_sensitivity = 2.0f;
+    rasterizer::vector3f move_delta{0.0f, 0.0f, 0.0f};
+    rasterizer::vector3f cam_forward;
+    rasterizer::vector3f cam_right;
+
     // FPS
-    std::uint32_t last_time = SDL_GetTicks();
+    std::uint32_t last_fps_time = SDL_GetTicks();
     int frame_count = 0;
     float fps = 0.0f;
+
+    // Delta time
+    std::uint32_t last_delta_time = SDL_GetTicks();
+    float delta_time = 0.0f;
 
     // Main loop
     while (!quit)
     {
+        std::uint32_t current_delta_time = SDL_GetTicks();
+        delta_time = (current_delta_time - last_delta_time) / 1000.0f; // in seconds
+        last_delta_time = current_delta_time;
+
+        // TODO -> fix this later ( move to better place)
+        move_delta.reset_to_zero();
+
         // Handle events
         while (SDL_PollEvent(&e) != 0)
         {
@@ -136,6 +156,27 @@ int main()
                 if (draw_surface)
                     SDL_FreeSurface(draw_surface);
                 draw_surface = nullptr;
+            }
+
+            // Mouse movement Input
+            if (e.type == SDL_MOUSEMOTION && e.motion.state & SDL_BUTTON(SDL_BUTTON_LEFT))
+            {
+                rasterizer::vector2f mouse_delta = rasterizer::vector2f{static_cast<float>(e.motion.xrel), static_cast<float>(e.motion.yrel)} / width * mouse_sensitivity;
+                cam.camera_transform.pitch = math::clamp(cam.camera_transform.pitch + mouse_delta.y, -math::to_radians(89.0f), math::to_radians(89.0f));
+                cam.camera_transform.yaw += mouse_delta.x;
+            }
+
+            // Keyboard Input
+            if (e.type == SDL_KEYDOWN)
+            {
+                if (e.key.keysym.sym == SDLK_a)
+                    move_delta -= cam_right;
+                if (e.key.keysym.sym == SDLK_d)
+                    move_delta += cam_right;
+                if (e.key.keysym.sym == SDLK_w)
+                    move_delta += cam_forward;
+                if (e.key.keysym.sym == SDLK_s)
+                    move_delta -= cam_forward;
             }
 
             // if (e.type == SDL_MOUSEWHEEL)
@@ -166,23 +207,32 @@ int main()
         // Clear Depth Buffer
         std::fill(depth_buffer.begin(), depth_buffer.end(), std::numeric_limits<float>::infinity());
 
+        // TODO -> maybe implement this in its ow class
+        // Camera
+        auto [right, up, forward] = cam.camera_transform.get_basis_vector();
+        cam_forward = forward;
+        cam_right = right;
+        cam.camera_transform.position += rasterizer::normalized_vector(move_delta) * cam_speed * delta_time;
+        cam.camera_transform.position.y = 1;
+
+        // Draw Model
         for (auto &m : models)
         {
             m.model_transform.yaw += 0.005f;
             m.model_transform.pitch += 0.003f;
-            m.fill_triangle_data(screen, fov);
+            m.fill_triangle_data(screen, cam);
             m.draw_to_pixel(screen, depth_buffer, pixels);
         }
 
         // Show FPS
         frame_count++;
         std::uint32_t current_time = SDL_GetTicks();
-        if (current_time - last_time >= 1000)
+        if (current_time - last_fps_time >= 1000)
         {
-            fps = frame_count * 1000.0f / (current_time - last_time);
+            fps = frame_count * 1000.0f / (current_time - last_fps_time);
             std::cout << "FPS: " << fps << " FOV: " << fov << " total vertices: " << total_vertices << "\n";
 
-            last_time = current_time;
+            last_fps_time = current_time;
 
             frame_count = 0;
         }

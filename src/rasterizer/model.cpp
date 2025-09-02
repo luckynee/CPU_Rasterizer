@@ -3,15 +3,15 @@
 namespace rasterizer
 {
     // Model Function
-    void model::fill_triangle_data(const vector2f &screen, float fov)
+    void model::fill_triangle_data(const vector2f &screen, camera &cam)
     {
         triangles_data.clear();
 
         for (unsigned int i = 0; i < vertices.size(); i += 3)
         {
-            rasterizer::vector3f v0 = rasterizer::vertex_to_screen(vertices[i], model_transform, screen, fov);
-            rasterizer::vector3f v1 = rasterizer::vertex_to_screen(vertices[i + 1], model_transform, screen, fov);
-            rasterizer::vector3f v2 = rasterizer::vertex_to_screen(vertices[i + 2], model_transform, screen, fov);
+            rasterizer::vector3f v0 = rasterizer::vertex_to_screen(vertices[i], model_transform, screen, cam);
+            rasterizer::vector3f v1 = rasterizer::vertex_to_screen(vertices[i + 1], model_transform, screen, cam);
+            rasterizer::vector3f v2 = rasterizer::vertex_to_screen(vertices[i + 2], model_transform, screen, cam);
 
             rasterizer::vector2f p0 = static_cast<rasterizer::vector2f>(v0);
             rasterizer::vector2f p1 = static_cast<rasterizer::vector2f>(v1);
@@ -34,6 +34,10 @@ namespace rasterizer
         for (unsigned int i = 0; i < triangles_data.size(); ++i)
         {
             const auto &triangle = triangles_data[i];
+
+            // if triangle behind camera
+            if (triangle.v3a.z <= 0 || triangle.v3b.z <= 0 || triangle.v3c.z <= 0)
+                continue;
 
             // Rasterize triangle within its bounding box
             int x_start = math::clamp(static_cast<int>(math::floor(triangle.minX)), 0, static_cast<int>(screen.x) - 1);
@@ -66,20 +70,17 @@ namespace rasterizer
         }
     }
 
-    // Global function
-
-    vector3f vertex_to_screen(const vector3f &vertex, transform &transform, const vector2f &screen, float fov)
+    vector3f vertex_to_screen(const vector3f &vertex, transform &transform, const vector2f &screen, camera &cam)
     {
-        vector3f world_pos = transform.to_world_position(vertex);
+        vector3f vertex_world = transform.to_world_position(vertex);
+        vector3f vertex_view = cam.camera_transform.to_local_position(vertex_world);
 
-        // Convert FOV from degrees to radians
-        float fov_rad = fov * math::PI / 180.0f;
-        float screen_height_world = math::tan(fov_rad / 2) * 2;
-        float pixel_per_world_unit = screen.y / screen_height_world / world_pos.z;
+        float screen_height_world = math::tan(cam.fov / 2) * 2;
+        float pixel_per_world_unit = screen.y / screen_height_world / vertex_view.z;
 
-        vector2f pixel_offset = vector2f(world_pos.x, world_pos.y) * pixel_per_world_unit;
+        vector2f pixel_offset = vector2f(vertex_view.x, vertex_view.y) * pixel_per_world_unit;
         vector2f vertex_screen = screen / 2 + pixel_offset;
-        return {vertex_screen.x, vertex_screen.y, world_pos.z};
+        return {vertex_screen.x, vertex_screen.y, vertex_view.z};
     }
 
     float calculate_dolly_zoom_fov(float fovInitial, float zPosInitial, float zPosCurrent)
