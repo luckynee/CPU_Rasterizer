@@ -7,6 +7,7 @@
 #include "helper/math.hpp"
 #include "rasterizer/model.hpp"
 #include "rasterizer/types.hpp"
+#include "shader/shader.hpp"
 
 // TODO -> change this later, only placeholder
 constexpr int width = 800;
@@ -50,42 +51,50 @@ int main()
 
     // Create Model
 
-    std::string objPath = "../resource/model/dragon.obj";
-    std::vector<rasterizer::vector3f> modelPoints = helper::load_obj(objPath);
+    std::string objPath = "../resource/model/cube.obj";
+    helper::model_data loaded_model = helper::load_obj(objPath);
     std::vector<rasterizer::vector3f> triangleColors;
     rasterizer::Random rng(10);
-    for (size_t i = 0; i < modelPoints.size(); i += 3)
+
+    for (size_t i = 0; i < loaded_model.indices.size(); i += 3)
     {
         triangleColors.push_back(rng.next_vector3f(0.0f, 1.0f));
     }
 
     rasterizer::vector3f centroid{0.0f, 0.0f, 0.0f};
-    for (const auto &v : modelPoints)
+    for (const auto &v : loaded_model.vertices)
     {
-        centroid.x += v.x;
-        centroid.y += v.y;
-        centroid.z += v.z;
+        centroid.x += v.position.x;
+        centroid.y += v.position.y;
+        centroid.z += v.position.z;
     }
-    centroid.x /= modelPoints.size();
-    centroid.y /= modelPoints.size();
-    centroid.z /= modelPoints.size();
+    centroid.x /= loaded_model.vertices.size();
+    centroid.y /= loaded_model.vertices.size();
+    centroid.z /= loaded_model.vertices.size();
 
-    for (auto &v : modelPoints)
+    for (auto &v : loaded_model.vertices)
     {
-        v = v - centroid;
+        v.position = v.position - centroid;
     }
 
     std::vector<rasterizer::model> models;
-    unsigned int total_vertices = 0;
+    int total_vertices = 0;
+
+    // Texture
+    auto tex_bytes = helper::load_bytes_texture("../resource/textures/uvGrid.bytes");
+    rasterizer::texture my_texture = rasterizer::create_texture_from_bytes(tex_bytes);
+    rasterizer::texture_shader my_shader{my_texture};
 
     for (unsigned int i = 0; i < 1; ++i)
     {
         rasterizer::transform model_transform;
-        models.emplace_back(modelPoints, triangleColors, model_transform);
-        total_vertices += modelPoints.size();
-    }
+        if (i % 2 == 0)
+            model_transform.position = {static_cast<float>(i) * 1.5f, 0.0f, 0.0f};
+        else
+            model_transform.position = {static_cast<float>(i) * -1.5f, 0.0f, 0.0f};
 
-    // --- Floor creation ---
+        models.emplace_back(loaded_model.vertices, loaded_model.indices, triangleColors, model_transform, &my_shader);
+    }
 
     // Init Data
     float fov = 90.0f;
@@ -188,10 +197,12 @@ int main()
         cam.move_camera(move_delta, cam_speed, delta_time);
 
         // Draw Model
+        total_vertices = 0;
         for (auto &m : models)
         {
-            // m.model_transform.pitch = 180.0f;
+            total_vertices += m.indices.size();
 
+            // TODO -> add culling to increase fps
             m.fill_triangle_data(screen, cam);
             m.draw_to_pixel(screen, depth_buffer, pixels);
         }
@@ -209,6 +220,17 @@ int main()
             frame_count = 0;
         }
 
+        // Find min/max depth (excluding infinity)
+        float min_depth = std::numeric_limits<float>::infinity();
+        float max_depth = 0.0f;
+        for (float d : depth_buffer)
+        {
+            if (d < min_depth)
+                min_depth = d;
+            if (d > max_depth && d < std::numeric_limits<float>::infinity())
+                max_depth = d;
+        }
+
         // Copy Data from surface
         SDL_Rect rect{.x = 0, .y = 0, .w = width, .h = height};
         SDL_BlitSurface(draw_surface, nullptr, SDL_GetWindowSurface(window), &rect);
@@ -223,57 +245,3 @@ int main()
 
     return 0;
 }
-
-// // Find min/max depth (excluding infinity)
-// float min_depth = std::numeric_limits<float>::infinity();
-// float max_depth = 0.0f;
-// for (float d : depth_buffer)
-// {
-//     if (d < min_depth)
-//         min_depth = d;
-//     if (d > max_depth && d < std::numeric_limits<float>::infinity())
-//         max_depth = d;
-// }
-
-// // Write depth as grayscale to color buffer
-// for (int y = 0; y < height; ++y)
-// {
-//     for (int x = 0; x < width; ++x)
-//     {
-//         int idx = y * width + x;
-//         float d = depth_buffer[idx];
-//         uint8_t gray = 0;
-//         if (d < std::numeric_limits<float>::infinity())
-//         {// Find min/max depth (excluding infinity)
-// float min_depth = std::numeric_limits<float>::infinity();
-// float max_depth = 0.0f;
-// for (float d : depth_buffer)
-// {
-//     if (d < min_depth)
-//         min_depth = d;
-//     if (d > max_depth && d < std::numeric_limits<float>::infinity())
-//         max_depth = d;
-// }
-
-// // Write depth as grayscale to color buffer
-// for (int y = 0; y < height; ++y)
-// {
-//     for (int x = 0; x < width; ++x)
-//     {
-//         int idx = y * width + x;
-//         float d = depth_buffer[idx];
-//         uint8_t gray = 0;
-//         if (d < std::numeric_limits<float>::infinity())
-//         {
-//             float norm = (d - min_depth) / (max_depth - min_depth + 1e-6f); // avoid div by zero
-//             gray = static_cast<uint8_t>((1.0f - norm) * 255.0f);            // near=white, far=black
-//         }
-//         pixels[idx] = (gray << 16) | (gray << 8) | gray | (0xFF << 24); // RGBA
-//     }
-// }
-//             float norm = (d - min_depth) / (max_depth - min_depth + 1e-6f); // avoid div by zero
-//             gray = static_cast<uint8_t>((1.0f - norm) * 255.0f);            // near=white, far=black
-//         }
-//         pixels[idx] = (gray << 16) | (gray << 8) | gray | (0xFF << 24); // RGBA
-//     }
-// }

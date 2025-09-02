@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "rasterizer/types.hpp"
+#include "shader/shader.hpp"
 
 namespace rasterizer
 {
@@ -11,11 +12,10 @@ namespace rasterizer
 
     struct triangle_data
     {
-        vector3f v3a, v3b, v3c; // screen-space vertices
-        vector2f v2a, v2b, v2c; // To avoid Conversion
-        float minX, maxX, minY, maxY;
-        float denom;
-        // Add more as needed (color, normal, etc.)
+        vector3f v3a, v3b, v3c;
+        vector2f v2a, v2b, v2c;
+        float minX, maxX, minY, maxY, denom;
+        unsigned int idx0, idx1, idx2;
     };
 
     struct transform
@@ -96,13 +96,24 @@ namespace rasterizer
 
     struct model
     {
-        std::vector<vector3f> vertices;
+        std::vector<vertex_data> vertices;
+        std::vector<unsigned int> indices;
         std::vector<vector3f> triangle_colors;
         transform model_transform;
         std::vector<triangle_data> triangles_data;
+        const shader *shader_ptr;
 
-        model(std::vector<vector3f> verts, std::vector<vector3f> triCols, transform modelTransform)
-            : vertices(std::move(verts)), triangle_colors(std::move(triCols)), model_transform(std::move(modelTransform)) {}
+        model(
+            const std::vector<vertex_data> &verts,
+            const std::vector<unsigned int> &inds,
+            const std::vector<vector3f> &triCols,
+            const transform &modelTransform,
+            const shader *shaderPtr = nullptr)
+            : vertices(std::move(verts)),
+              indices(std::move(inds)),
+              triangle_colors(std::move(triCols)),
+              model_transform(std::move(modelTransform)),
+              shader_ptr(shaderPtr) {}
 
         void fill_triangle_data(const vector2f &screen, camera &cam);
 

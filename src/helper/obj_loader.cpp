@@ -5,10 +5,60 @@
 
 namespace helper
 {
-    std::vector<rasterizer::vector3f> load_obj(const std::string &filename)
+    // TODO-> Fix obj loader implementation
+    // ...existing code...
+    unsigned int parse_face_vertex(
+        const std::string &vertex_string,
+        const std::vector<rasterizer::vector3f> &temp_pos,
+        const std::vector<rasterizer::vector2f> &temp_tex,
+        const std::vector<rasterizer::vector3f> &temp_norm,
+        std::map<std::string, unsigned int> &known_vertices,
+        model_data &out_model_data)
     {
-        std::vector<rasterizer::vector3f> points;
-        std::vector<rasterizer::vector3f> trianglesPoints;
+        if (known_vertices.count(vertex_string))
+        {
+            return known_vertices[vertex_string];
+        }
+
+        std::stringstream ss(vertex_string);
+        std::string part;
+
+        unsigned int pos_index = 0, tex_index = 0, norm_index = 0;
+
+        std::getline(ss, part, '/');
+        if (!part.empty())
+            pos_index = std::stoul(part);
+
+        std::getline(ss, part, '/');
+        if (!part.empty())
+            tex_index = std::stoul(part);
+
+        std::getline(ss, part, '/');
+        if (!part.empty())
+            norm_index = std::stoul(part);
+
+        rasterizer::vertex_data new_vertex;
+        if (pos_index > 0)
+            new_vertex.position = temp_pos[pos_index - 1];
+        if (tex_index > 0)
+            new_vertex.tex_coord = temp_tex[tex_index - 1];
+        if (norm_index > 0)
+            new_vertex.normal = temp_norm[norm_index - 1];
+
+        out_model_data.vertices.push_back(new_vertex);
+        unsigned int new_index = out_model_data.vertices.size() - 1;
+        known_vertices[vertex_string] = new_index;
+        return new_index;
+    }
+
+    model_data load_obj(const std::string &filename)
+    {
+        std::vector<rasterizer::vector3f> temp_pos;
+        std::vector<rasterizer::vector2f> temp_tex;
+        std::vector<rasterizer::vector3f> temp_norm;
+
+        model_data model;
+        std::map<std::string, unsigned int> known_vertices;
 
         std::ifstream file(filename);
         std::string line;
@@ -19,38 +69,63 @@ namespace helper
             std::string prefix;
             iss >> prefix;
 
+            // Vertex Position
             if (prefix == "v")
             {
                 rasterizer::vector3f vertex;
                 iss >> vertex.x >> vertex.y >> vertex.z;
-                points.push_back(vertex);
+                temp_pos.push_back(vertex);
+            }
+            // Text coords
+            else if (prefix == "vt")
+            {
+                rasterizer::vector2f tex_coord;
+                iss >> tex_coord.x >> tex_coord.y;
+                temp_tex.push_back(tex_coord);
+            }
+            // Vertex Normal
+            else if (prefix == "vn")
+            {
+                rasterizer::vector3f normal;
+                iss >> normal.x >> normal.y >> normal.z;
+                temp_norm.push_back(normal);
             }
             else if (prefix == "f")
             {
+                std::vector<unsigned int> face_indices;
                 std::string vertex_str;
-                std::vector<int> indices;
+
                 while (iss >> vertex_str)
                 {
-                    size_t pos = vertex_str.find("//");
-                    int vertex_index = 0;
-                    if (pos != std::string::npos)
-                        vertex_index = std::stoi(vertex_str.substr(0, pos));
-                    else
-                        vertex_index = std::stoi(vertex_str);
-
-                    // Obj is 1-based
-                    indices.push_back(vertex_index - 1);
+                    unsigned int index = parse_face_vertex(vertex_str, temp_pos, temp_tex, temp_norm, known_vertices, model);
+                    face_indices.push_back(index);
                 }
-                // Triangulate (assuming triangles)
-                if (indices.size() == 3)
+
+                if (face_indices.size() >= 3)
                 {
-                    trianglesPoints.push_back(points[indices[0]]);
-                    trianglesPoints.push_back(points[indices[1]]);
-                    trianglesPoints.push_back(points[indices[2]]);
+                    for (size_t i = 1; i + 1 < face_indices.size(); ++i)
+                    {
+                        model.indices.push_back(face_indices[0]);
+                        model.indices.push_back(face_indices[i]);
+                        model.indices.push_back(face_indices[i + 1]);
+                    }
                 }
             }
         }
 
-        return trianglesPoints;
+        return model;
+    }
+
+    std::vector<std::uint8_t> load_bytes_texture(const std::string &filename)
+    {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file)
+            throw std::runtime_error("Failed to open texture file!");
+
+        // Read all bytes into a vector
+        std::vector<std::uint8_t> bytes(
+            (std::istreambuf_iterator<char>(file)),
+            std::istreambuf_iterator<char>());
+        return bytes;
     }
 }

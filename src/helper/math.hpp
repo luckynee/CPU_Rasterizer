@@ -1,7 +1,5 @@
 #pragma once
 
-#include "rasterizer/types.hpp"
-
 namespace math
 {
     constexpr float PI = 3.14159265358979323846f;
@@ -95,15 +93,23 @@ namespace math
     constexpr float sqrt(float x)
     {
         if (x < 0.0f)
-            return 0.0f; // or handle error as needed
+            return 0.0f;
         if (x == 0.0f)
             return 0.0f;
 
         float guess = x;
-        for (int i = 0; i < 10; ++i) // 10 iterations is usually enough
+        for (int i = 0; i < 10; ++i)
         {
             guess = 0.5f * (guess + x / guess);
         }
         return guess;
+    }
+
+    constexpr float fmod(float x, float y)
+    {
+        if (y == 0.0f)
+            return 0.0f;
+
+        return x - y * static_cast<int>(x / y);
     }
 }

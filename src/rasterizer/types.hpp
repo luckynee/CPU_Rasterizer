@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
+#include <stdexcept>
 
 #include "helper/math.hpp"
 
@@ -143,6 +145,48 @@ namespace rasterizer
         }
     };
 
+    struct vertex_data
+    {
+        vector3f position;
+        vector2f tex_coord;
+        vector3f normal;
+    };
+
+    struct texture
+    {
+        const int width;
+        const int height;
+
+        inline texture(int width, int height, std::vector<vector3f> image_data)
+            : width(width),
+              height(height),
+              wscale(width - 1),
+              hscale(height - 1),
+              m_image_data(std::move(image_data))
+        {
+        }
+
+        inline vector3f sample_texture(float u, float v) const
+        {
+            float wrapped_u = math::fmod(u, 1.0f);
+            float wrapped_v = math::fmod(v, 1.0f);
+            if (wrapped_u < 0)
+                wrapped_u += 1.0f;
+            if (wrapped_v < 0)
+                wrapped_v += 1.0f;
+
+            int x = static_cast<int>(wrapped_u * wscale);
+            int y = static_cast<int>(wrapped_v * hscale);
+
+            return m_image_data[y * width + x];
+        }
+
+    private:
+        const int wscale;
+        const int hscale;
+        std::vector<vector3f> m_image_data;
+    };
+
     //
     // Casting Functionshow to create
     //
@@ -235,22 +279,6 @@ namespace rasterizer
     // Check if the specific point inside the triangle
     inline bool point_in_triangle(const vector2f &a, const vector2f &b, const vector2f &c, float px, float py, vector3f &weights, float denom)
     {
-
-        // float areaABP = signed_triangle_area(a, b, p);
-        // float areaBCP = signed_triangle_area(b, c, p);
-        // float areaCAP = signed_triangle_area(c, a, p);
-        // bool in_triangle = areaABP >= 0 && areaBCP >= 0 && areaCAP >= 0;
-
-        // // Weighting factors (barycentric coordinates)
-        // float total_area = (areaABP + areaBCP + areaCAP);
-        // float inv_area_sum = 1 / total_area;
-        // float weightAB = areaBCP * inv_area_sum;
-        // float weightBC = areaCAP * inv_area_sum;
-        // float weightCA = areaABP * inv_area_sum;
-        // weights = vector3f{weightAB, weightBC, weightCA};
-
-        // return in_triangle && total_area > 0;
-
         if (math::abs(denom) < 1e-6f)
             return false; // Degenerate triangle
 
@@ -264,4 +292,39 @@ namespace rasterizer
         weights = vector3f{w0, w1, w2};
         return in_triangle;
     }
+
+    inline texture create_texture_from_bytes(const std::vector<std::uint8_t> &bytes)
+    {
+        if (bytes.size() < 4)
+            throw std::runtime_error("Invalid texture bytes");
+
+        int width = bytes[0] | (bytes[1] << 8);
+        int height = bytes[2] | (bytes[3] << 8);
+
+        if (width <= 0 || height <= 0)
+            throw std::runtime_error("Invalid texture bytes");
+
+        std::size_t expected_size = 4 + (static_cast<std::size_t>(width) * height * 3);
+        if (bytes.size() < expected_size)
+            throw std::runtime_error("Invalid texture bytes");
+
+        std::vector<vector3f> image_data(width * height);
+        std::size_t byte_index = 4;
+
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                float b = bytes[byte_index + 0] / 255.0f;
+                float r = bytes[byte_index + 1] / 255.0f;
+                float g = bytes[byte_index + 2] / 255.0f;
+
+                image_data[y * width + x] = vector3f{r, g, b};
+                byte_index += 3;
+            }
+        }
+
+        return texture(width, height, std::move(image_data));
+    }
+
 }
