@@ -54,17 +54,12 @@ namespace rasterizer
 
         std::tuple<vector3f, vector3f, vector3f> get_inverse_basis_vector()
         {
-            vector3f ihat_yaw = {math::cos(-yaw), 0, -math::sin(-yaw)};
-            vector3f jhat_yaw = {0, 1, 0};
-            vector3f khat_yaw = {math::sin(-yaw), 0, math::cos(-yaw)};
-            vector3f ihat_pitch = {1, 0, 0};
-            vector3f jhat_pitch = {0, math::cos(-pitch), -math::sin(-pitch)};
-            vector3f khat_pitch = {0, math::sin(-pitch), math::cos(-pitch)};
-            vector3f ihat = transform_vector(ihat_pitch, jhat_pitch, khat_pitch, ihat_yaw);
-            vector3f jhat = transform_vector(ihat_pitch, jhat_pitch, khat_pitch, jhat_yaw);
-            vector3f khat = transform_vector(ihat_pitch, jhat_pitch, khat_pitch, khat_yaw);
+            auto [ihat, jhat, khat] = get_basis_vector();
+            vector3f ihat_inverse{ihat.x, jhat.x, khat.x};
+            vector3f jhat_inverse{ihat.y, jhat.y, khat.y};
+            vector3f khat_inverse{ihat.z, jhat.z, khat.z};
 
-            return std::make_tuple(ihat, jhat, khat);
+            return std::make_tuple(ihat_inverse, jhat_inverse, khat_inverse);
         }
 
         vector3f transform_vector(vector3f ihat, vector3f jhat, vector3f khat, vector3f vec)
@@ -80,6 +75,23 @@ namespace rasterizer
     {
         float fov = math::to_radians(90.0f);
         transform camera_transform;
+        vector3f cam_forward;
+        vector3f cam_right;
+        vector3f cam_up;
+
+        void update_camera_vectors()
+        {
+            auto [right, up, forward] = camera_transform.get_basis_vector();
+            cam_forward = forward;
+            cam_right = right;
+            cam_up = up;
+        }
+
+        void move_camera(const vector3f &delta, float cam_speed, float delta_time)
+        {
+            camera_transform.position += normalized_vector(delta) * cam_speed * delta_time;
+            camera_transform.position.y = 1;
+        }
     };
 
     struct model

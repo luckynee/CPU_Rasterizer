@@ -50,7 +50,7 @@ int main()
 
     // Create Model
 
-    std::string objPath = "../resource/model/monkey.obj";
+    std::string objPath = "../resource/model/dragon.obj";
     std::vector<rasterizer::vector3f> modelPoints = helper::load_obj(objPath);
     std::vector<rasterizer::vector3f> triangleColors;
     rasterizer::Random rng(10);
@@ -59,7 +59,7 @@ int main()
         triangleColors.push_back(rng.next_vector3f(0.0f, 1.0f));
     }
 
-    rasterizer::vector3f centroid{0, 0, 0};
+    rasterizer::vector3f centroid{0.0f, 0.0f, 0.0f};
     for (const auto &v : modelPoints)
     {
         centroid.x += v.x;
@@ -78,33 +78,14 @@ int main()
     std::vector<rasterizer::model> models;
     unsigned int total_vertices = 0;
 
-    for (unsigned int i = 0; i < 3; ++i)
+    for (unsigned int i = 0; i < 1; ++i)
     {
-        rasterizer::transform modelTransform;
-
-        if (i % 2 == 0)
-            modelTransform.position = {static_cast<float>(i) * -1.0f, 1.0f, 3.0f + static_cast<float>(i)};
-        else
-            modelTransform.position = {static_cast<float>(i) * 1.0f, 1.0f, 3.0f + static_cast<float>(i)};
-        models.emplace_back(modelPoints, triangleColors, modelTransform);
+        rasterizer::transform model_transform;
+        models.emplace_back(modelPoints, triangleColors, model_transform);
         total_vertices += modelPoints.size();
     }
 
-    for (unsigned int i = 0; i < 3; ++i)
-    {
-        rasterizer::transform modelTransform;
-
-        if (i % 2 == 0)
-            modelTransform.position = {static_cast<float>(i) * -1.0f, -1.0f, 3.0f + static_cast<float>(i)};
-        else
-            modelTransform.position = {static_cast<float>(i) * 1.0f, -1.0f, 3.0f + static_cast<float>(i)};
-        models.emplace_back(modelPoints, triangleColors, modelTransform);
-        total_vertices += modelPoints.size();
-    }
-
-    // model transform
-
-    // Center model
+    // --- Floor creation ---
 
     // Init Data
     float fov = 90.0f;
@@ -125,8 +106,6 @@ int main()
     constexpr float cam_speed = 5.5f;
     constexpr float mouse_sensitivity = 2.0f;
     rasterizer::vector3f move_delta{0.0f, 0.0f, 0.0f};
-    rasterizer::vector3f cam_forward;
-    rasterizer::vector3f cam_right;
 
     // FPS
     std::uint32_t last_fps_time = SDL_GetTicks();
@@ -144,9 +123,6 @@ int main()
         delta_time = (current_delta_time - last_delta_time) / 1000.0f; // in seconds
         last_delta_time = current_delta_time;
 
-        // TODO -> fix this later ( move to better place)
-        move_delta.reset_to_zero();
-
         // Handle events
         while (SDL_PollEvent(&e) != 0)
         {
@@ -162,22 +138,22 @@ int main()
             if (e.type == SDL_MOUSEMOTION && e.motion.state & SDL_BUTTON(SDL_BUTTON_LEFT))
             {
                 rasterizer::vector2f mouse_delta = rasterizer::vector2f{static_cast<float>(e.motion.xrel), static_cast<float>(e.motion.yrel)} / width * mouse_sensitivity;
-                cam.camera_transform.pitch = math::clamp(cam.camera_transform.pitch + mouse_delta.y, -math::to_radians(89.0f), math::to_radians(89.0f));
+                cam.camera_transform.pitch = math::clamp(cam.camera_transform.pitch - mouse_delta.y, -math::to_radians(89.0f), math::to_radians(89.0f));
                 cam.camera_transform.yaw += mouse_delta.x;
             }
 
+            // TODO -> fix this later ( move to better place)
             // Keyboard Input
-            if (e.type == SDL_KEYDOWN)
-            {
-                if (e.key.keysym.sym == SDLK_a)
-                    move_delta -= cam_right;
-                if (e.key.keysym.sym == SDLK_d)
-                    move_delta += cam_right;
-                if (e.key.keysym.sym == SDLK_w)
-                    move_delta += cam_forward;
-                if (e.key.keysym.sym == SDLK_s)
-                    move_delta -= cam_forward;
-            }
+            move_delta.reset_to_zero();
+            const Uint8 *keystate = SDL_GetKeyboardState(NULL);
+            if (keystate[SDL_SCANCODE_W])
+                move_delta += cam.cam_forward;
+            if (keystate[SDL_SCANCODE_S])
+                move_delta -= cam.cam_forward;
+            if (keystate[SDL_SCANCODE_A])
+                move_delta -= cam.cam_right;
+            if (keystate[SDL_SCANCODE_D])
+                move_delta += cam.cam_right;
 
             // if (e.type == SDL_MOUSEWHEEL)
             // {
@@ -207,19 +183,15 @@ int main()
         // Clear Depth Buffer
         std::fill(depth_buffer.begin(), depth_buffer.end(), std::numeric_limits<float>::infinity());
 
-        // TODO -> maybe implement this in its ow class
         // Camera
-        auto [right, up, forward] = cam.camera_transform.get_basis_vector();
-        cam_forward = forward;
-        cam_right = right;
-        cam.camera_transform.position += rasterizer::normalized_vector(move_delta) * cam_speed * delta_time;
-        cam.camera_transform.position.y = 1;
+        cam.update_camera_vectors();
+        cam.move_camera(move_delta, cam_speed, delta_time);
 
         // Draw Model
         for (auto &m : models)
         {
-            m.model_transform.yaw += 0.005f;
-            m.model_transform.pitch += 0.003f;
+            // m.model_transform.pitch = 180.0f;
+
             m.fill_triangle_data(screen, cam);
             m.draw_to_pixel(screen, depth_buffer, pixels);
         }

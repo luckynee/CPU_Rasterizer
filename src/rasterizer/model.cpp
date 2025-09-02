@@ -57,7 +57,9 @@ namespace rasterizer
                         continue;
 
                     // Interpolate depth
-                    float interpolated_z = weight.x * triangle.v3a.z + weight.y * triangle.v3b.z + weight.z * triangle.v3c.z;
+                    float denom = weight.x / triangle.v3a.z + weight.y / triangle.v3b.z + weight.z / triangle.v3c.z;
+                    
+                    float interpolated_z = 1.0f / denom;
 
                     int idx = y * screen.x + x;
                     if (interpolated_z < depth_buffer[idx])
@@ -80,6 +82,8 @@ namespace rasterizer
 
         vector2f pixel_offset = vector2f(vertex_view.x, vertex_view.y) * pixel_per_world_unit;
         vector2f vertex_screen = screen / 2 + pixel_offset;
+        vertex_screen.y = screen.y - vertex_screen.y;
+
         return {vertex_screen.x, vertex_screen.y, vertex_view.z};
     }
 

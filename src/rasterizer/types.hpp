@@ -8,7 +8,7 @@ namespace rasterizer
 {
     struct vector2f
     {
-        float x, y;
+        float x = 0.0f, y = 0.0f;
 
         vector2f operator-(const vector2f &other) const
         {
@@ -40,13 +40,13 @@ namespace rasterizer
 
     struct vector3f
     {
-        float x, y, z;
+        float x = 0.0f, y = 0.0f, z = 0.0f;
 
         void reset_to_zero()
         {
-            x = 0;
-            y = 0;
-            z = 0;
+            x = 0.0f;
+            y = 0.0f;
+            z = 0.0f;
         }
 
         vector3f operator-(const vector3f &other) const
