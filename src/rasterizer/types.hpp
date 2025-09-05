@@ -87,6 +87,14 @@ namespace rasterizer
             return *this;
         }
 
+        vector3f operator*=(float scalar)
+        {
+            x *= scalar;
+            y *= scalar;
+            z *= scalar;
+            return *this;
+        }
+
         explicit operator vector2f() const
         {
             return vector2f{x, y};
@@ -150,6 +158,14 @@ namespace rasterizer
         vector3f position;
         vector2f tex_coord;
         vector3f normal;
+    };
+
+    struct rasterizer_data
+    {
+        vector2f position;
+        vector2f tex_coord;
+        vector3f normal;
+        float depth;
     };
 
     struct texture
@@ -257,6 +273,24 @@ namespace rasterizer
     // Calculate the perpendicular vector ( 90 degress clockwise from given vector)
     inline vector2f perpendicular(const vector2f &v) { return vector2f{v.y, -v.x}; }
 
+    inline float lerp(float a, float b, float t)
+    {
+        t = math::clamp(t, 0.0f, 1.0f);
+        return a + (b - a) * t;
+    }
+
+    inline vector2f lerp(const vector2f &a, const vector2f &b, float t)
+    {
+        t = math::clamp(t, 0.0f, 1.0f);
+        return a + (b - a) * t;
+    }
+
+    inline vector3f lerp(const vector3f &a, const vector3f &b, float t)
+    {
+        t = math::clamp(t, 0.0f, 1.0f);
+        return a + (b - a) * t;
+    }
+
     // Calculate area of triangle ABC (positive if clockwise, otherwise negative)
     inline float signed_triangle_area(const vector2f &a, const vector2f &b, const vector2f &c)
     {
@@ -277,20 +311,23 @@ namespace rasterizer
     }
 
     // Check if the specific point inside the triangle
-    inline bool point_in_triangle(const vector2f &a, const vector2f &b, const vector2f &c, float px, float py, vector3f &weights, float denom)
+    inline bool point_in_triangle(const vector2f &a, const vector2f &b, const vector2f &c, float px, float py, vector3f &weights)
     {
-        if (math::abs(denom) < 1e-6f)
-            return false; // Degenerate triangle
+        vector2f p{px, py};
+        float area_abc = signed_triangle_area(a, b, c);
+        if (area_abc == 0)
+            return false;
 
-        float w0 = ((b.y - c.y) * (px - c.x) + (c.x - b.x) * (py - c.y)) / denom;
-        float w1 = ((c.y - a.y) * (px - c.x) + (a.x - c.x) * (py - c.y)) / denom;
-        float w2 = 1.0f - w0 - w1;
+        float area_pbc = signed_triangle_area(p, b, c);
+        float area_apc = signed_triangle_area(a, p, c);
+        float area_abp = signed_triangle_area(a, b, p);
 
-        constexpr float epsilon = -1e-4f;
-        bool in_triangle = (w0 > epsilon) && (w1 > epsilon) && (w2 > epsilon);
+        weights.x = area_pbc / area_abc;
+        weights.y = area_apc / area_abc;
+        weights.z = area_abp / area_abc;
 
-        weights = vector3f{w0, w1, w2};
-        return in_triangle;
+        // Strict inside test
+        return weights.x >= 0 && weights.y >= 0 && weights.z >= 0;
     }
 
     inline texture create_texture_from_bytes(const std::vector<std::uint8_t> &bytes)

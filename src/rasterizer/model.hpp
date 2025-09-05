@@ -12,10 +12,12 @@ namespace rasterizer
 
     struct triangle_data
     {
-        vector3f v3a, v3b, v3c;
-        vector2f v2a, v2b, v2c;
-        float minX, maxX, minY, maxY, denom;
+        vector2f p0, p1, p2;
+        float minX, maxX, minY, maxY;
         unsigned int idx0, idx1, idx2;
+        vector3f inv_depth;
+        vector2f tx, ty, tz;
+        vector3f nx, ny, nz;
     };
 
     struct transform
@@ -23,17 +25,25 @@ namespace rasterizer
         float yaw = 0;
         float pitch = 0;
         vector3f position{0, 0, 0};
+        vector3f scale{1.0f, 1.0f, 1.0f};
 
-        vector3f to_world_position(vector3f p)
+        vector3f to_world_position(vector3f local_point)
         {
             auto [ihat, jhat, khat] = get_basis_vector();
-            return transform_vector(ihat, jhat, khat, p) + position;
+            ihat *= scale.x;
+            jhat *= scale.y;
+            khat *= scale.z;
+            return transform_vector(ihat, jhat, khat, local_point) + position;
         }
 
         vector3f to_local_position(vector3f world_point)
         {
             auto [ihat, jhat, khat] = get_inverse_basis_vector();
-            return transform_vector(ihat, jhat, khat, world_point - position);
+            vector3f local = transform_vector(ihat, jhat, khat, world_point - position);
+            local.x /= scale.x;
+            local.y /= scale.y;
+            local.z /= scale.z;
+            return local;
         }
 
         std::tuple<vector3f, vector3f, vector3f> get_basis_vector()
@@ -102,6 +112,8 @@ namespace rasterizer
         transform model_transform;
         std::vector<triangle_data> triangles_data;
         const shader *shader_ptr;
+        std::vector<rasterizer::rasterizer_data> rasterizer_points;
+        std::vector<unsigned int> rasterizer_indices;
 
         model(
             const std::vector<vertex_data> &verts,
@@ -115,7 +127,7 @@ namespace rasterizer
               model_transform(std::move(modelTransform)),
               shader_ptr(shaderPtr) {}
 
-        void fill_triangle_data(const vector2f &screen, camera &cam);
+        void fill_triangle_data();
 
         void draw_to_pixel(const vector2f &screen, std::vector<float> &depth_buffer, std::uint32_t *pixels);
     };
@@ -124,7 +136,18 @@ namespace rasterizer
     // TODO -> Maybe move this to camera class
     vector3f vertex_to_screen(const vector3f &vertex, transform &transform, const vector2f &screen, camera &cam);
 
+    vector2f view_to_screen(const vector3f &view_point, const vector2f &screen, camera &cam);
+
+    vector3f vertex_to_view(const vector3f &vertex, transform &transform, camera &cam);
+
     // TODO -> Move this later
     float calculate_dolly_zoom_fov(float fovInitial, float zPosInitial, float zPosCurrent);
+
+    // TODO -> Move this later
+    void process_model(rasterizer::model &m, camera &cam, vector2f &screen);
+
+    void add_vertex_to_rasterizer_points(rasterizer::model &m, vector3f view_point, int vert_index, vector2f &screen, camera &cam);
+
+    void add_vertex_to_rasterizer_points(rasterizer::model &m, vector3f view_point, int vert_index_a, int vert_index_b, float t, vector2f &screen, camera &cam);
 
 }

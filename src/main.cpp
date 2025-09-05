@@ -51,55 +51,90 @@ int main()
 
     // Create Model
 
-    std::string objPath = "../resource/model/cube.obj";
-    helper::model_data loaded_model = helper::load_obj(objPath);
-    std::vector<rasterizer::vector3f> triangleColors;
-    rasterizer::Random rng(10);
+    // std::string objPath = "../resource/model/fox.obj";
+    // helper::model_data loaded_model = helper::load_obj(objPath);
+    // std::vector<rasterizer::vector3f> triangleColors;
+    // rasterizer::Random rng(10);
 
-    for (size_t i = 0; i < loaded_model.indices.size(); i += 3)
-    {
-        triangleColors.push_back(rng.next_vector3f(0.0f, 1.0f));
-    }
+    // for (size_t i = 0; i < loaded_model.indices.size(); i += 3)
+    // {
+    //     triangleColors.push_back(rng.next_vector3f(0.0f, 1.0f));
+    // }
 
-    rasterizer::vector3f centroid{0.0f, 0.0f, 0.0f};
-    for (const auto &v : loaded_model.vertices)
-    {
-        centroid.x += v.position.x;
-        centroid.y += v.position.y;
-        centroid.z += v.position.z;
-    }
-    centroid.x /= loaded_model.vertices.size();
-    centroid.y /= loaded_model.vertices.size();
-    centroid.z /= loaded_model.vertices.size();
+    // rasterizer::vector3f centroid{0.0f, 0.0f, 0.0f};
+    // for (const auto &v : loaded_model.vertices)
+    // {
+    //     centroid.x += v.position.x;
+    //     centroid.y += v.position.y;
+    //     centroid.z += v.position.z;
+    // }
+    // centroid.x /= loaded_model.vertices.size();
+    // centroid.y /= loaded_model.vertices.size();
+    // centroid.z /= loaded_model.vertices.size();
 
-    for (auto &v : loaded_model.vertices)
-    {
-        v.position = v.position - centroid;
-    }
+    // for (auto &v : loaded_model.vertices)
+    // {
+    //     v.position = v.position - centroid;
+    // }
 
     std::vector<rasterizer::model> models;
     int total_vertices = 0;
 
     // Texture
-    auto tex_bytes = helper::load_bytes_texture("../resource/textures/uvGrid.bytes");
-    rasterizer::texture my_texture = rasterizer::create_texture_from_bytes(tex_bytes);
-    rasterizer::texture_shader my_shader{my_texture};
+    // auto tex_bytes = helper::load_bytes_texture("../resource/textures/uvGrid.bytes");
+    // rasterizer::texture my_texture = rasterizer::create_texture_from_bytes(tex_bytes);
+    // rasterizer::texture_shader my_shader{my_texture};
 
-    for (unsigned int i = 0; i < 1; ++i)
+    // Lit shader
+    // rasterizer::lit_shader my_shader{rasterizer::vector3f{0.0f, 0.0f, -1.0f}};
+
+    // Lit texture
+    // auto tex_bytes = helper::load_bytes_texture("../resource/textures/colMap.bytes");
+    // rasterizer::texture my_texture = rasterizer::create_texture_from_bytes(tex_bytes);
+    // rasterizer::lit_texture my_shader{my_texture, rasterizer::vector3f{0.0f, 0.0f, -1.0f}};
+
+    // for (unsigned int i = 0; i < 1; ++i)
+    // {
+    //     rasterizer::transform model_transform;
+    //     if (i % 2 == 0)
+    //         model_transform.position = {static_cast<float>(i) * 1.5f, 0.0f, 0.0f};
+    //     else
+    //         model_transform.position = {static_cast<float>(i) * -1.5f, 0.0f, 0.0f};
+
+    //     models.emplace_back(loaded_model.vertices, loaded_model.indices, triangleColors, model_transform, &my_shader);
+    // }
+
+    // floor
+    std::string objPath2 = "../resource/model/floor.obj";
+    helper::model_data loaded_model2 = helper::load_obj(objPath2);
+    rasterizer::vector3f centroid2{0.0f, 0.0f, 0.0f};
+    for (const auto &v : loaded_model2.vertices)
     {
-        rasterizer::transform model_transform;
-        if (i % 2 == 0)
-            model_transform.position = {static_cast<float>(i) * 1.5f, 0.0f, 0.0f};
-        else
-            model_transform.position = {static_cast<float>(i) * -1.5f, 0.0f, 0.0f};
-
-        models.emplace_back(loaded_model.vertices, loaded_model.indices, triangleColors, model_transform, &my_shader);
+        centroid2.x += v.position.x;
+        centroid2.y += v.position.y;
+        centroid2.z += v.position.z;
     }
+    centroid2.x /= loaded_model2.vertices.size();
+    centroid2.y /= loaded_model2.vertices.size();
+    centroid2.z /= loaded_model2.vertices.size();
+
+    for (auto &v : loaded_model2.vertices)
+    {
+        v.position = v.position - centroid2;
+    }
+
+    auto floor_bytes = helper::load_bytes_texture("../resource/textures/uvGrid.bytes");
+    rasterizer::texture floor_texture = rasterizer::create_texture_from_bytes(floor_bytes);
+    rasterizer::texture_shader floor_shader{floor_texture};
+
+    rasterizer::transform floor_transform;
+    floor_transform.position = {0.0f, -2.0f, 0.0f};
+    floor_transform.scale = {3.0f, 1.0f, 3.0f};
+
+    models.emplace_back(loaded_model2.vertices, loaded_model2.indices, std::vector<rasterizer::vector3f>(loaded_model2.indices.size() / 3, rasterizer::vector3f{1.0f, 1.0f, 1.0f}), floor_transform, &floor_shader);
 
     // Init Data
     float fov = 90.0f;
-    // float original_z = myModel.model_transform.position.z;
-    // float original_fov = fov;
 
     // Screen
     rasterizer::vector2f screen{width, height};
@@ -197,13 +232,12 @@ int main()
         cam.move_camera(move_delta, cam_speed, delta_time);
 
         // Draw Model
-        total_vertices = 0;
+
         for (auto &m : models)
         {
-            total_vertices += m.indices.size();
-
             // TODO -> add culling to increase fps
-            m.fill_triangle_data(screen, cam);
+            rasterizer::process_model(m, cam, screen);
+            m.fill_triangle_data();
             m.draw_to_pixel(screen, depth_buffer, pixels);
         }
 
