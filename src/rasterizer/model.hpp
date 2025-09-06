@@ -82,8 +82,12 @@ namespace rasterizer
 
     struct camera
     {
-        float fov = math::to_radians(90.0f);
         transform camera_transform;
+        float fov = math::to_radians(90.0f);
+        float cam_speed = 5.0f;
+        float mouse_sensitivity = 2.0f;
+
+        vector3f move_delta{0.0f, 0.0f, 0.0f};
         vector3f cam_forward;
         vector3f cam_right;
         vector3f cam_up;
@@ -96,9 +100,9 @@ namespace rasterizer
             cam_up = up;
         }
 
-        void move_camera(const vector3f &delta, float cam_speed, float delta_time)
+        void move_camera(float delta_time)
         {
-            camera_transform.position += normalized_vector(delta) * cam_speed * delta_time;
+            camera_transform.position += normalized_vector(move_delta) * cam_speed * delta_time;
             camera_transform.position.y = 1;
         }
     };
@@ -107,24 +111,24 @@ namespace rasterizer
     {
         std::vector<vertex_data> vertices;
         std::vector<unsigned int> indices;
-        std::vector<vector3f> triangle_colors;
         transform model_transform;
-        std::vector<triangle_data> triangles_data;
         const shader *shader_ptr;
+        std::vector<vector3f> triangle_colors;
+        std::vector<triangle_data> triangles_data;
         std::vector<rasterizer::rasterizer_data> rasterizer_points;
         std::vector<unsigned int> rasterizer_indices;
 
         model(
             const std::vector<vertex_data> &verts,
             const std::vector<unsigned int> &inds,
-            const std::vector<vector3f> &triCols,
             const transform &modelTransform,
-            const shader *shaderPtr = nullptr)
+            const shader *shaderPtr = nullptr,
+            const std::vector<vector3f> &tri_cols = std::vector<vector3f>())
             : vertices(std::move(verts)),
               indices(std::move(inds)),
-              triangle_colors(std::move(triCols)),
               model_transform(std::move(modelTransform)),
-              shader_ptr(shaderPtr) {}
+              shader_ptr(shaderPtr),
+              triangle_colors(std::move(tri_cols)) {}
 
         void fill_triangle_data();
     };

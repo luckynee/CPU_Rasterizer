@@ -5,8 +5,6 @@
 
 namespace helper
 {
-    // TODO-> Fix obj loader implementation
-    // ...existing code...
     unsigned int parse_face_vertex(
         const std::string &vertex_string,
         const std::vector<rasterizer::vector3f> &temp_pos,

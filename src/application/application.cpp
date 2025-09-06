@@ -1,5 +1,7 @@
 #include "application.hpp"
 
+#include "rasterizer/rasterizer_engine.hpp"
+
 namespace application
 {
     bool application::init_application()
@@ -25,6 +27,8 @@ namespace application
 
         m_draw_surface = SDL_CreateRGBSurfaceWithFormat(0, m_width, m_height, 32, SDL_PIXELFORMAT_RGBA32);
         SDL_SetSurfaceBlendMode(m_draw_surface, SDL_BLENDMODE_NONE);
+
+        m_rasterizer_engine = std::make_unique<rasterizer::rasterizer_engine>(m_width, m_height, *this);
 
         setup_world();
 
@@ -66,8 +70,13 @@ namespace application
     // Private methods
     //
 
+    //
+    // Application Specific Methods
+    //
+
     void application::setup_world()
     {
+        m_rasterizer_engine->setup_models();
     }
 
     void application::handle_events()
@@ -75,21 +84,28 @@ namespace application
         while (SDL_PollEvent(&m_event) != 0)
         {
             if (m_event.type == SDL_QUIT)
-            {
                 m_quit = true;
-                if (m_draw_surface)
-                    SDL_FreeSurface(m_draw_surface);
-                m_draw_surface = nullptr;
-            }
+
+            // Mouse
+            if (m_event.type == SDL_MOUSEMOTION && m_event.motion.state & SDL_BUTTON(SDL_BUTTON_LEFT))
+                m_rasterizer_engine->rotate_camera(m_event.motion.xrel, m_event.motion.yrel);
+
+            // Keyboard
+            m_rasterizer_engine->move_camera(SDL_GetKeyboardState(NULL));
         }
     }
 
     void application::pre_render()
     {
+        update_delta_time();
+        update_fps();
+
+        m_rasterizer_engine->pre_renders();
     }
 
     void application::render()
     {
+        m_rasterizer_engine->render_models();
     }
 
     void application::post_render()
@@ -99,5 +115,30 @@ namespace application
         SDL_BlitSurface(m_draw_surface, nullptr, SDL_GetWindowSurface(m_window), &rect);
 
         SDL_UpdateWindowSurface(m_window);
+    }
+
+    //
+    // Helper Methods
+    //
+
+    void application::update_fps()
+    {
+        frame_count++;
+        std::uint32_t current_time = SDL_GetTicks();
+        if (current_time - last_fps_time >= 1000)
+        {
+            fps = frame_count * 1000.0f / (current_time - last_fps_time);
+
+            last_fps_time = current_time;
+
+            frame_count = 0;
+        }
+    }
+
+    void application::update_delta_time()
+    {
+        std::uint32_t current_time = SDL_GetTicks();
+        delta_time = (current_time - last_delta_time) / 1000.0f;
+        last_delta_time = current_time;
     }
 }

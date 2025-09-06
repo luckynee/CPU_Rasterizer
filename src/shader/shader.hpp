@@ -1,5 +1,6 @@
 #pragma once
 
+#include "helper/obj_loader.hpp"
 #include "rasterizer/types.hpp"
 #include "rasterizer/types_math.hpp"
 
@@ -20,7 +21,10 @@ namespace rasterizer
     public:
         rasterizer::texture texture;
 
-        texture_shader(const rasterizer::texture &tex) : texture(tex) {}
+        texture_shader(const std::string &filepath)
+            : texture(helper::create_texture_from_bytes(helper::load_bytes_texture(filepath)))
+        {
+        }
 
         rasterizer::vector3f shade(const rasterizer::vector3f &position,
                                    const rasterizer::vector3f &normal,

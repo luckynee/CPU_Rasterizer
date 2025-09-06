@@ -1,7 +1,91 @@
 #include "rasterizer_engine.hpp"
 
+#include "helper/obj_loader.hpp"
+
 namespace rasterizer
 {
+
+    void rasterizer_engine::setup_models()
+    {
+        // Create Shader
+        m_shaders.push_back(std::make_unique<texture_shader>("../resource/textures/uvGrid.bytes"));
+
+        // Load Model
+        helper::model_data loaded_model2 = helper::load_obj("../resource/model/floor.obj");
+        center_model(loaded_model2);
+
+        // Create Transform
+        transform floor_transform;
+        floor_transform.scale = {3.0f, 1.0f, 3.0f};
+        floor_transform.position = {0.0f, -2.0f, 0.0f};
+
+        // Create Model
+        m_models.emplace_back(
+            loaded_model2.vertices,
+            loaded_model2.indices,
+            floor_transform,
+            m_shaders[0].get());
+    }
+
+    void rasterizer_engine::pre_renders()
+    {
+        clear_buffers();
+
+        m_camera.update_camera_vectors();
+        m_camera.move_camera(m_app->get_delta_time());
+    }
+
+    void rasterizer_engine::render_models()
+    {
+        for (auto &model : m_models)
+        {
+            // Process model
+            process_model(model, m_camera, m_screen);
+
+            model.fill_triangle_data();
+
+            draw_to_pixel(model, m_depth_buffer, m_color_buffer);
+        }
+    }
+
+    //
+    // Camera Functions
+    //
+
+    void rasterizer_engine::rotate_camera(int xrel, int yrel)
+    {
+        vector2f mouse_delta = vector2f{static_cast<float>(xrel), static_cast<float>(yrel)} / m_width * m_camera.mouse_sensitivity;
+        m_camera.camera_transform.pitch = math::clamp(m_camera.camera_transform.pitch - mouse_delta.y, -math::to_radians(89.0f), math::to_radians(89.0f));
+        m_camera.camera_transform.yaw += mouse_delta.x;
+    }
+
+    void rasterizer_engine::move_camera(const Uint8 *key_state)
+    {
+        m_camera.move_delta.reset_to_zero();
+
+        if (key_state[SDL_SCANCODE_W])
+            m_camera.move_delta += m_camera.cam_forward;
+        if (key_state[SDL_SCANCODE_S])
+            m_camera.move_delta -= m_camera.cam_forward;
+        if (key_state[SDL_SCANCODE_A])
+            m_camera.move_delta -= m_camera.cam_right;
+        if (key_state[SDL_SCANCODE_D])
+            m_camera.move_delta += m_camera.cam_right;
+    }
+
+    //
+    // Private Methods
+    //
+
+    void rasterizer_engine::clear_buffers()
+    {
+        if (m_color_buffer)
+            std::fill(m_color_buffer, m_color_buffer + (m_width * m_height), 0);
+
+        if (!m_depth_buffer.empty())
+            std::fill(m_depth_buffer.begin(), m_depth_buffer.end(), std::numeric_limits<float>::infinity());
+    }
+
     void rasterizer_engine::draw_to_pixel(
         const model &model,
         std::vector<float> &depth_buffer,
@@ -41,37 +125,61 @@ namespace rasterizer
                                                    triangle.inv_depth.z * weight.z);
                     int idx = y * m_screen.x + x;
 
-                    if (interpolated_z < depth_buffer[idx])
+                    if (interpolated_z >= depth_buffer[idx])
+                        continue;
+
+                    // Interpolate tex coord
+                    vector2f tex_coord = (triangle.tx * weight.x +
+                                          triangle.ty * weight.y +
+                                          triangle.tz * weight.z) *
+                                         interpolated_z;
+
+                    depth_buffer[idx] = interpolated_z;
+
+                    // Interpolate normal
+                    vector3f normal =
+                        (triangle.nx * weight.x +
+                         triangle.ny * weight.y +
+                         triangle.nz * weight.z) *
+                        interpolated_z;
+
+                    if (model.shader_ptr)
                     {
-                        // Interpolate tex coord
-                        vector2f tex_coord = (triangle.tx * weight.x +
-                                              triangle.ty * weight.y +
-                                              triangle.tz * weight.z) *
-                                             interpolated_z;
-
-                        depth_buffer[idx] = interpolated_z;
-
-                        // Interpolate normal
-                        vector3f normal =
-                            (triangle.nx * weight.x +
-                             triangle.ny * weight.y +
-                             triangle.nz * weight.z) *
-                            interpolated_z;
-
-                        if (model.shader_ptr)
-                        {
-                            pixels[idx] = rasterizer::to_uint32(model.shader_ptr->shade(
-                                rasterizer::vector3f{0, 0, 0}, // position not used
-                                normal,
-                                tex_coord));
-                        }
-                        else
-                        {
-                            pixels[idx] = rasterizer::to_uint32(model.triangle_colors[i]);
-                        }
+                        pixels[idx] = rasterizer::to_uint32(model.shader_ptr->shade(
+                            rasterizer::vector3f{0, 0, 0}, // position not used
+                            normal,
+                            tex_coord));
+                    }
+                    else
+                    {
+                        pixels[idx] = rasterizer::to_uint32(model.triangle_colors[i]);
                     }
                 }
             }
         }
     }
+
+    //
+    // Global Function
+    //
+
+    void center_model(helper::model_data &model_data)
+    {
+        rasterizer::vector3f centroid{0.0f, 0.0f, 0.0f};
+        for (const auto &v : model_data.vertices)
+        {
+            centroid.x += v.position.x;
+            centroid.y += v.position.y;
+            centroid.z += v.position.z;
+        }
+        centroid.x /= model_data.vertices.size();
+        centroid.y /= model_data.vertices.size();
+        centroid.z /= model_data.vertices.size();
+
+        for (auto &v : model_data.vertices)
+        {
+            v.position = v.position - centroid;
+        }
+    }
+
 }

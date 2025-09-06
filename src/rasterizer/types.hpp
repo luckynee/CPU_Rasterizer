@@ -170,8 +170,8 @@ namespace rasterizer
 
     struct texture
     {
-        const int width;
-        const int height;
+        const int width = 0;
+        const int height = 0;
 
         inline texture(int width, int height, std::vector<vector3f> image_data)
             : width(width),

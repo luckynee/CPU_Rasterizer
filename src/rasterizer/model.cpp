@@ -101,7 +101,7 @@ namespace rasterizer
         return math::atan(desired_half_height) * 2 * 180.0f / math::PI;
     }
 
-    // ...existing code...
+    // TODO -> Move this to rasterizer engine later
     void process_model(rasterizer::model &m, camera &cam, vector2f &screen)
     {
         vector3f view_points[3];
