@@ -103,12 +103,12 @@ namespace rasterizer
 
     struct vector4f
     {
-        float x, y, z, w;
+        float x = 0.0f, y = 0.0f, z = 0.0f, w = 0.0f;
     };
 
     struct color4ub
     {
-        std::uint8_t r, g, b, a;
+        std::uint8_t r = 0, g = 0, b = 0, a = 0;
     };
 
     struct Random
@@ -204,11 +204,10 @@ namespace rasterizer
     };
 
     //
-    // Casting Functionshow to create
+    // Casting Functions
     //
 
-    inline color4ub
-    to_color4ub(const vector4f &vec)
+    inline color4ub to_color4ub(const vector4f &vec)
     {
         return color4ub{
             static_cast<std::uint8_t>(math::clamp(vec.x * 255.0f, 0.0f, 255.0f)),
@@ -226,7 +225,6 @@ namespace rasterizer
             255};
     }
 
-    // Converts vector3f (r,g,b in [0,1]) to packed uint32_t RGBA (alpha=255)
     inline uint32_t to_uint32(const rasterizer::vector3f &v)
     {
         uint8_t r = static_cast<uint8_t>(math::clamp(v.x, 0.0f, 1.0f) * 255.0f);
@@ -243,125 +241,6 @@ namespace rasterizer
                (static_cast<std::uint32_t>(col.b) << 16) |
                (static_cast<std::uint32_t>(col.g) << 8) |
                (static_cast<std::uint32_t>(col.r));
-    }
-
-    //
-    // Calculations
-    //
-
-    // Calculate Dot Product of a and b
-    // Product of their lengths, times the cosine of the angle between them
-    inline float dot(const vector2f &a, const vector2f &b) { return a.x * b.x + a.y * b.y; }
-    inline float dot(const vector3f &a, const vector3f &b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
-
-    inline vector2f normalized_vector(const vector2f &v)
-    {
-        float len = math::sqrt(dot(v, v));
-        if (len > 1e-6f)
-            return v / len;
-        return vector2f{0, 0};
-    }
-
-    inline vector3f normalized_vector(const vector3f &v)
-    {
-        float len = math::sqrt(dot(v, v));
-        if (len > 1e-6f)
-            return v / len;
-        return vector3f{0, 0, 0};
-    }
-
-    // Calculate the perpendicular vector ( 90 degress clockwise from given vector)
-    inline vector2f perpendicular(const vector2f &v) { return vector2f{v.y, -v.x}; }
-
-    inline float lerp(float a, float b, float t)
-    {
-        t = math::clamp(t, 0.0f, 1.0f);
-        return a + (b - a) * t;
-    }
-
-    inline vector2f lerp(const vector2f &a, const vector2f &b, float t)
-    {
-        t = math::clamp(t, 0.0f, 1.0f);
-        return a + (b - a) * t;
-    }
-
-    inline vector3f lerp(const vector3f &a, const vector3f &b, float t)
-    {
-        t = math::clamp(t, 0.0f, 1.0f);
-        return a + (b - a) * t;
-    }
-
-    // Calculate area of triangle ABC (positive if clockwise, otherwise negative)
-    inline float signed_triangle_area(const vector2f &a, const vector2f &b, const vector2f &c)
-    {
-        float acx = c.x - a.x;
-        float acy = c.y - a.y;
-
-        float abx = b.x - a.x;
-        float aby = b.y - a.y;
-
-        // perpendicular(b - a)
-        float ab_perp_x = aby;
-        float ab_perp_y = -abx;
-
-        // dot(ac, ab_perp)
-        float dot = acx * ab_perp_x + acy * ab_perp_y;
-
-        return dot / 2.0f;
-    }
-
-    // Check if the specific point inside the triangle
-    inline bool point_in_triangle(const vector2f &a, const vector2f &b, const vector2f &c, float px, float py, vector3f &weights)
-    {
-        vector2f p{px, py};
-        float area_abc = signed_triangle_area(a, b, c);
-        if (area_abc == 0)
-            return false;
-
-        float area_pbc = signed_triangle_area(p, b, c);
-        float area_apc = signed_triangle_area(a, p, c);
-        float area_abp = signed_triangle_area(a, b, p);
-
-        weights.x = area_pbc / area_abc;
-        weights.y = area_apc / area_abc;
-        weights.z = area_abp / area_abc;
-
-        // Strict inside test
-        return weights.x >= 0 && weights.y >= 0 && weights.z >= 0;
-    }
-
-    inline texture create_texture_from_bytes(const std::vector<std::uint8_t> &bytes)
-    {
-        if (bytes.size() < 4)
-            throw std::runtime_error("Invalid texture bytes");
-
-        int width = bytes[0] | (bytes[1] << 8);
-        int height = bytes[2] | (bytes[3] << 8);
-
-        if (width <= 0 || height <= 0)
-            throw std::runtime_error("Invalid texture bytes");
-
-        std::size_t expected_size = 4 + (static_cast<std::size_t>(width) * height * 3);
-        if (bytes.size() < expected_size)
-            throw std::runtime_error("Invalid texture bytes");
-
-        std::vector<vector3f> image_data(width * height);
-        std::size_t byte_index = 4;
-
-        for (int y = 0; y < height; ++y)
-        {
-            for (int x = 0; x < width; ++x)
-            {
-                float b = bytes[byte_index + 0] / 255.0f;
-                float r = bytes[byte_index + 1] / 255.0f;
-                float g = bytes[byte_index + 2] / 255.0f;
-
-                image_data[y * width + x] = vector3f{r, g, b};
-                byte_index += 3;
-            }
-        }
-
-        return texture(width, height, std::move(image_data));
     }
 
 }

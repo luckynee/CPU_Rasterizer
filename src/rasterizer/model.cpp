@@ -51,85 +51,12 @@ namespace rasterizer
                                     vert2_data.normal.y * inv_depth.z,
                                     vert2_data.normal.z * inv_depth.z};
 
-            // ...existing code...
             float denom = (p1.y - p2.y) * (p0.x - p2.x) + (p2.x - p1.x) * (p0.y - p2.y);
             if (std::abs(denom) < 1e-5f)
                 continue; // Skip degenerate triangles
                           // ...existing code...
 
             triangles_data.emplace_back(rasterizer::triangle_data{p0, p1, p2, minX, maxX, minY, maxY, index0, index1, index2, inv_depth, tx, ty, tz, nx, ny, nz});
-        }
-    }
-
-    void model::draw_to_pixel(const vector2f &screen, std::vector<float> &depth_buffer, std::uint32_t *pixels)
-    {
-        for (unsigned int i = 0; i < triangles_data.size(); ++i)
-        {
-            const auto &triangle = triangles_data[i];
-
-            // Skip triangles that are completely outside the screen
-            if (triangle.inv_depth.z <= 0 || triangle.inv_depth.y <= 0 || triangle.inv_depth.x <= 0)
-                continue;
-
-            if (triangle.maxX < 0 || triangle.minX > screen.x - 1 ||
-                triangle.maxY < 0 || triangle.minY > screen.y - 1)
-            {
-                continue; // Triangle is completely outside the screen
-            }
-
-            // Rasterize triangle within its bounding box
-            int x_start = math::clamp(static_cast<int>(math::floor(triangle.minX)), 0, static_cast<int>(screen.x) - 1);
-            int x_end = math::clamp(static_cast<int>(math::ceil(triangle.maxX)), 0, static_cast<int>(screen.x) - 1);
-            int y_start = math::clamp(static_cast<int>(math::floor(triangle.minY)), 0, static_cast<int>(screen.y) - 1);
-            int y_end = math::clamp(static_cast<int>(math::ceil(triangle.maxY)), 0, static_cast<int>(screen.y) - 1);
-
-            for (int y = y_start; y <= y_end; ++y)
-            {
-                for (int x = x_start; x <= x_end; ++x)
-                {
-                    float px = static_cast<float>(x) + 0.5f;
-                    float py = static_cast<float>(y) + 0.5f;
-                    rasterizer::vector3f weight{0.0f, 0.0f, 0.0f};
-
-                    if (!rasterizer::point_in_triangle(triangle.p0, triangle.p1, triangle.p2, px, py, weight))
-                        continue;
-
-                    float interpolated_z = 1.0f / (triangle.inv_depth.x * weight.x +
-                                                   triangle.inv_depth.y * weight.y +
-                                                   triangle.inv_depth.z * weight.z);
-                    int idx = y * screen.x + x;
-
-                    if (interpolated_z < depth_buffer[idx])
-                    {
-                        // Interpolate tex coord
-                        vector2f tex_coord = (triangle.tx * weight.x +
-                                              triangle.ty * weight.y +
-                                              triangle.tz * weight.z) *
-                                             interpolated_z;
-
-                        depth_buffer[idx] = interpolated_z;
-
-                        // Interpolate normal
-                        vector3f normal =
-                            (triangle.nx * weight.x +
-                             triangle.ny * weight.y +
-                             triangle.nz * weight.z) *
-                            interpolated_z;
-
-                        if (shader_ptr)
-                        {
-                            pixels[idx] = rasterizer::to_uint32(shader_ptr->shade(
-                                rasterizer::vector3f{0, 0, 0}, // position not used
-                                normal,
-                                tex_coord));
-                        }
-                        else
-                        {
-                            pixels[idx] = rasterizer::to_uint32(triangle_colors[i]);
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -212,11 +139,11 @@ namespace rasterizer
 
                 // Intersect clipped->a
                 float t_a = (near_clip - clipped.z) / (a.z - clipped.z);
-                vector3f intersect_a = rasterizer::lerp(clipped, a, t_a);
+                vector3f intersect_a = math::lerp(clipped, a, t_a);
 
                 // Intersect clipped->b
                 float t_b = (near_clip - clipped.z) / (b.z - clipped.z);
-                vector3f intersect_b = rasterizer::lerp(clipped, b, t_b);
+                vector3f intersect_b = math::lerp(clipped, b, t_b);
 
                 int vert_clip = m.indices[i + clip_index];
                 int vert_a = m.indices[i + keep_a];
@@ -246,8 +173,8 @@ namespace rasterizer
                 float t_a = (near_clip - keep.z) / (clipped_a.z - keep.z);
                 float t_b = (near_clip - keep.z) / (clipped_b.z - keep.z);
 
-                vector3f intersect_a = rasterizer::lerp(keep, clipped_a, t_a);
-                vector3f intersect_b = rasterizer::lerp(keep, clipped_b, t_b);
+                vector3f intersect_a = math::lerp(keep, clipped_a, t_a);
+                vector3f intersect_b = math::lerp(keep, clipped_b, t_b);
 
                 int vert_keep = m.indices[i + keep_index];
                 int vert_a = m.indices[i + clip_a];
@@ -275,8 +202,8 @@ namespace rasterizer
     void add_vertex_to_rasterizer_points(rasterizer::model &m, vector3f view_point, int vert_index_a, int vert_index_b, float t, vector2f &screen, camera &cam)
     {
         vector2f screen_pos = view_to_screen(view_point, screen, cam);
-        vector2f tex_coord = rasterizer::lerp(m.vertices[vert_index_a].tex_coord, m.vertices[vert_index_b].tex_coord, t);
-        vector3f normal = rasterizer::lerp(m.vertices[vert_index_a].normal, m.vertices[vert_index_b].normal, t);
+        vector2f tex_coord = math::lerp(m.vertices[vert_index_a].tex_coord, m.vertices[vert_index_b].tex_coord, t);
+        vector3f normal = math::lerp(m.vertices[vert_index_a].normal, m.vertices[vert_index_b].normal, t);
         float depth = view_point.z;
         m.rasterizer_points.emplace_back(rasterizer::rasterizer_data{screen_pos, tex_coord, normal, depth});
         m.rasterizer_indices.push_back(m.rasterizer_points.size() - 1);

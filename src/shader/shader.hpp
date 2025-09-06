@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rasterizer/types.hpp"
+#include "rasterizer/types_math.hpp"
 
 namespace rasterizer
 {

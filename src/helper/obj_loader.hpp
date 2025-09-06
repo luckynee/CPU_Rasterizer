@@ -9,6 +9,8 @@
 namespace helper
 {
 
+    // Model
+
     struct model_data
     {
         std::vector<rasterizer::vertex_data> vertices;
@@ -25,5 +27,9 @@ namespace helper
 
     model_data load_obj(const std::string &filename);
 
+    // Texture
+
     std::vector<std::uint8_t> load_bytes_texture(const std::string &filename);
+
+    rasterizer::texture create_texture_from_bytes(const std::vector<std::uint8_t> &bytes);
 }

@@ -2,19 +2,35 @@
 
 namespace math
 {
+    //
+    // Constants
+    //
     constexpr float PI = 3.14159265358979323846f;
 
+    //
+    // Min/Max/Clamp
+    //
     template <typename T>
-    constexpr T min(const T &a, const T &b) { return (a < b) ? a : b; }
+    constexpr T min(const T &a, const T &b)
+    {
+        return (a < b) ? a : b;
+    }
 
     template <typename T>
-    constexpr T max(const T &a, const T &b) { return (a > b) ? a : b; }
+    constexpr T max(const T &a, const T &b)
+    {
+        return (a > b) ? a : b;
+    }
 
     template <typename T>
     constexpr T clamp(const T &value, const T &minVal, const T &maxVal)
     {
         return max(minVal, min(value, maxVal));
     }
+
+    //
+    // Rounding
+    //
 
     template <typename T>
     constexpr T floor(const T &value)
@@ -28,7 +44,9 @@ namespace math
         return static_cast<T>(static_cast<int>(value) + (value > static_cast<T>(0) && value != static_cast<T>(static_cast<int>(value))));
     }
 
-    // Normalize angle to [-PI, PI]
+    //
+    // Angle and Trigonometry
+    //
     constexpr float wrap_pi(float x)
     {
         while (x < -PI)
@@ -38,7 +56,6 @@ namespace math
         return x;
     }
 
-    // Sine approximation (Taylor series, accurate for small |x|)
     constexpr float sin(float x)
     {
         x = wrap_pi(x);
@@ -46,7 +63,6 @@ namespace math
         return x - (x2 * x) / 6.0f + (x2 * x2 * x) / 120.0f - (x2 * x2 * x2 * x) / 5040.0f;
     }
 
-    // Cosine approximation (Taylor series)
     constexpr float cos(float x)
     {
         x = wrap_pi(x);
@@ -54,7 +70,6 @@ namespace math
         return 1.0f - x2 / 2.0f + (x2 * x2) / 24.0f - (x2 * x2 * x2) / 720.0f;
     }
 
-    // Tangent as sin/cos
     constexpr float tan(float x)
     {
         return sin(x) / cos(x);
@@ -62,10 +77,10 @@ namespace math
 
     constexpr float atan(float x)
     {
-        // Abramowitz and Stegun formula 4.4.40
-        // Accurate for |x| <= 1
         float abs_x = x < 0 ? -x : x;
+
         float result;
+
         if (abs_x <= 1.0f)
         {
             result = x / (1.0f + 0.28f * x * x);
@@ -79,15 +94,19 @@ namespace math
         return result;
     }
 
+    constexpr float to_radians(float degrees)
+    {
+        return degrees * (PI / 180.0f);
+    }
+
+    //
+    // Absolute Value , Square Root, and Modulus
+    //
+
     template <typename T>
     constexpr T abs(const T &value)
     {
         return (value < 0) ? -value : value;
-    }
-
-    constexpr float to_radians(float degrees)
-    {
-        return degrees * (PI / 180.0f);
     }
 
     constexpr float sqrt(float x)
@@ -102,6 +121,7 @@ namespace math
         {
             guess = 0.5f * (guess + x / guess);
         }
+
         return guess;
     }
 
@@ -111,5 +131,16 @@ namespace math
             return 0.0f;
 
         return x - y * static_cast<int>(x / y);
+    }
+
+    //
+    // Interpolation
+    //
+
+    template <typename T>
+    inline T lerp(const T &a, const T &b, float t)
+    {
+        t = math::clamp(t, 0.0f, 1.0f);
+        return a + (b - a) * t;
     }
 }

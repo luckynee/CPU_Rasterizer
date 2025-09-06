@@ -128,4 +128,38 @@ namespace helper
             std::istreambuf_iterator<char>());
         return bytes;
     }
+
+    rasterizer::texture create_texture_from_bytes(const std::vector<std::uint8_t> &bytes)
+    {
+        if (bytes.size() < 4)
+            throw std::runtime_error("Invalid texture bytes");
+
+        int width = bytes[0] | (bytes[1] << 8);
+        int height = bytes[2] | (bytes[3] << 8);
+
+        if (width <= 0 || height <= 0)
+            throw std::runtime_error("Invalid texture bytes");
+
+        std::size_t expected_size = 4 + (static_cast<std::size_t>(width) * height * 3);
+        if (bytes.size() < expected_size)
+            throw std::runtime_error("Invalid texture bytes");
+
+        std::vector<rasterizer::vector3f> image_data(width * height);
+        std::size_t byte_index = 4;
+
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                float b = bytes[byte_index + 0] / 255.0f;
+                float r = bytes[byte_index + 1] / 255.0f;
+                float g = bytes[byte_index + 2] / 255.0f;
+
+                image_data[y * width + x] = rasterizer::vector3f{r, g, b};
+                byte_index += 3;
+            }
+        }
+
+        return rasterizer::texture(width, height, std::move(image_data));
+    }
 }

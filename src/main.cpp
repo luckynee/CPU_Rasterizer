@@ -3,10 +3,12 @@
 
 #include <SDL2/SDL.h>
 
+#include "application/application.hpp"
 #include "helper/obj_loader.hpp"
 #include "helper/math.hpp"
 #include "rasterizer/model.hpp"
 #include "rasterizer/types.hpp"
+#include "rasterizer/rasterizer_engine.hpp"
 #include "shader/shader.hpp"
 
 // TODO -> change this later, only placeholder
@@ -15,6 +17,8 @@ constexpr int height = 600;
 
 int main()
 {
+    application::application app(width, height);
+
     // Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
         return -1;
@@ -33,15 +37,15 @@ int main()
         return -1;
     }
 
-    // Create renderer
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == nullptr)
-    {
-        std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return -1;
-    }
+    // // Create renderer
+    // SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    // if (renderer == nullptr)
+    // {
+    //     std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+    //     SDL_DestroyWindow(window);
+    //     SDL_Quit();
+    //     return -1;
+    // }
 
     // Main loop flag
     bool quit = false;
@@ -90,7 +94,7 @@ int main()
 
     // Lit texture
     // auto tex_bytes = helper::load_bytes_texture("../resource/textures/colMap.bytes");
-    // rasterizer::texture my_texture = rasterizer::create_texture_from_bytes(tex_bytes);
+    // rasterizer::texture my_texture = helper::create_texture_from_bytes(tex_bytes);
     // rasterizer::lit_texture my_shader{my_texture, rasterizer::vector3f{0.0f, 0.0f, -1.0f}};
 
     // for (unsigned int i = 0; i < 1; ++i)
@@ -124,7 +128,7 @@ int main()
     }
 
     auto floor_bytes = helper::load_bytes_texture("../resource/textures/uvGrid.bytes");
-    rasterizer::texture floor_texture = rasterizer::create_texture_from_bytes(floor_bytes);
+    rasterizer::texture floor_texture = helper::create_texture_from_bytes(floor_bytes);
     rasterizer::texture_shader floor_shader{floor_texture};
 
     rasterizer::transform floor_transform;
@@ -160,8 +164,11 @@ int main()
     std::uint32_t last_delta_time = SDL_GetTicks();
     float delta_time = 0.0f;
 
+    // Rasterizer engine
+    rasterizer::rasterizer_engine engine(width, height);
+
     // Main loop
-    while (!quit)
+    while (!app.m_quit)
     {
         std::uint32_t current_delta_time = SDL_GetTicks();
         delta_time = (current_delta_time - last_delta_time) / 1000.0f; // in seconds
@@ -172,7 +179,7 @@ int main()
         {
             if (e.type == SDL_QUIT)
             {
-                quit = true;
+                app.m_quit = true;
                 if (draw_surface)
                     SDL_FreeSurface(draw_surface);
                 draw_surface = nullptr;
@@ -235,10 +242,9 @@ int main()
 
         for (auto &m : models)
         {
-            // TODO -> add culling to increase fps
             rasterizer::process_model(m, cam, screen);
             m.fill_triangle_data();
-            m.draw_to_pixel(screen, depth_buffer, pixels);
+            engine.draw_to_pixel(m, depth_buffer, pixels);
         }
 
         // Show FPS
@@ -273,7 +279,7 @@ int main()
     }
 
     // Clean up
-    SDL_DestroyRenderer(renderer);
+    // SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
 

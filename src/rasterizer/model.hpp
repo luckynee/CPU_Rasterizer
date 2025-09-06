@@ -4,12 +4,11 @@
 #include <vector>
 
 #include "rasterizer/types.hpp"
+#include "rasterizer/types_math.hpp"
 #include "shader/shader.hpp"
 
 namespace rasterizer
 {
-    struct transform;
-
     struct triangle_data
     {
         vector2f p0, p1, p2;
@@ -128,17 +127,15 @@ namespace rasterizer
               shader_ptr(shaderPtr) {}
 
         void fill_triangle_data();
-
-        void draw_to_pixel(const vector2f &screen, std::vector<float> &depth_buffer, std::uint32_t *pixels);
     };
 
     // TODO -> Fix to NDC later
     // TODO -> Maybe move this to camera class
-    vector3f vertex_to_screen(const vector3f &vertex, transform &transform, const vector2f &screen, camera &cam);
+    vector3f vertex_to_screen(const vector3f &vertex, const transform &transform, const vector2f &screen, camera &cam);
 
     vector2f view_to_screen(const vector3f &view_point, const vector2f &screen, camera &cam);
 
-    vector3f vertex_to_view(const vector3f &vertex, transform &transform, camera &cam);
+    vector3f vertex_to_view(const vector3f &vertex, const transform &transform, camera &cam);
 
     // TODO -> Move this later
     float calculate_dolly_zoom_fov(float fovInitial, float zPosInitial, float zPosCurrent);
