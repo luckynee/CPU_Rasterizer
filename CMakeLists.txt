@@ -35,7 +35,29 @@ else()
     set(SDL_TARGET SDL2::SDL2)
 endif()
 
-add_executable(${PROJECT_NAME} ${MY_SOURCES})
+# Main application target
+#add_executable(${PROJECT_NAME} ${MY_SOURCES})
+file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp")
+
+add_executable(${PROJECT_NAME} src/core/main.cpp ${CORE_SOURCES})
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core"
+)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL_TARGET})
+
+# Demo targets
+file(GLOB_RECURSE TERRAIN_DEMO_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/demos/*.cpp")
+
+add_executable(terrain_demo src/demos/demos_main.cpp ${CORE_SOURCES})
+
+target_include_directories(terrain_demo PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/demos"
+)
+target_link_libraries(terrain_demo PRIVATE ${SDL_TARGET})
 
 # Optimization flags
 if(NOT CMAKE_BUILD_TYPE)
@@ -57,16 +79,25 @@ endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
+# Optimization and warning flags for all targets
+foreach(target IN LISTS cpu_rasterizer terrain_demo)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(${target} PRIVATE -O3 -ffast-math)
+    elseif(CMAKE_BUILD_TYPE STREQUAL "Profiling")
+        target_compile_options(${target} PRIVATE -O2 -pg -ffast-math)
+        target_link_options(${target} PRIVATE -pg)
+    endif()
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4 /WX)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endif()
+endforeach()
 
-# Link SDL2 libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL_TARGET})
 
-# Include Dir
-target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-
-# Compiler-specific option
-if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX)
-else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
-endif()     
+# Suppress warnings in third-party code
+set_source_files_properties(
+    src/demos/vendor/OpenSimplexNoise.cpp
+    PROPERTIES
+    COMPILE_FLAGS "-Wno-unused-but-set-variable -Wno-unused-variable"
+)
