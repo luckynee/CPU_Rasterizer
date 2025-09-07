@@ -54,6 +54,10 @@ namespace rasterizer
 
         void clear_buffers();
 
+        void draw_to_pixel_multithreaded(const model &model,
+                                         std::vector<float> &depth_buffer,
+                                         std::uint32_t *pixels);
+
         void draw_to_pixel(
             const model &model,
             std::vector<float> &depth_buffer,

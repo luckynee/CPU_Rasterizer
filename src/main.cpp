@@ -10,8 +10,8 @@
 #include "rasterizer/rasterizer_engine.hpp"
 
 // TODO -> change this later, only placeholder
-constexpr int width = 800;
-constexpr int height = 600;
+constexpr int width = 1920;
+constexpr int height = 1080;
 
 int main()
 {

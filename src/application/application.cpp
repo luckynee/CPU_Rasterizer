@@ -1,5 +1,6 @@
-#include "application.hpp"
+#include <iostream>
 
+#include "application.hpp"
 #include "rasterizer/rasterizer_engine.hpp"
 
 namespace application
@@ -130,6 +131,8 @@ namespace application
             fps = frame_count * 1000.0f / (current_time - last_fps_time);
 
             last_fps_time = current_time;
+
+            std::cout << "FPS: " << fps << std::endl;
 
             frame_count = 0;
         }

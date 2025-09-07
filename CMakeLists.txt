@@ -49,9 +49,9 @@ endif()
 
 # Enable Optimisation in release
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(${PROJECT_NAME} PRIVATE -O3)
+    target_compile_options(${PROJECT_NAME} PRIVATE -O3 -ffast-math)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Profiling")
-    target_compile_options(${PROJECT_NAME} PRIVATE -O2 -pg)
+    target_compile_options(${PROJECT_NAME} PRIVATE -O2 -pg -ffast-math)
     target_link_options(${PROJECT_NAME} PRIVATE -pg)
 endif()
 
