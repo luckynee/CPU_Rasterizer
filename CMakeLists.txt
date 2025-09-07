@@ -49,8 +49,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL_TARGET})
 
 # Demo targets
 file(GLOB_RECURSE TERRAIN_DEMO_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/demos/*.cpp")
-
-add_executable(terrain_demo src/demos/demos_main.cpp ${CORE_SOURCES})
+list(REMOVE_ITEM CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/core/main.cpp")
+add_executable(terrain_demo src/demos/demos_main.cpp ${TERRAIN_DEMO_SOURCES} ${CORE_SOURCES})
 
 target_include_directories(terrain_demo PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -80,7 +80,7 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Optimization and warning flags for all targets
-foreach(target IN LISTS cpu_rasterizer terrain_demo)
+foreach(target IN LISTS ${PROJECT_NAME} terrain_demo)
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         target_compile_options(${target} PRIVATE -O3 -ffast-math)
     elseif(CMAKE_BUILD_TYPE STREQUAL "Profiling")
