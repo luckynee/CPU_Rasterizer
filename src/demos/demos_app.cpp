@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "demos_app.hpp"
 
 #include "core/helper/obj_loader.hpp"
@@ -42,33 +44,87 @@ namespace demo
 
     void demo_engine::setup_models()
     {
-        // // Generate terrain
-        // rasterizer::mesh_data terrain_mesh = demo::generate_terrain(
-        //     128,         // resolution (adjust as needed)
-        //     20.0f,       // world_size (adjust as needed)
-        //     {0.0f, 0.0f} // grid_center
-        // );
+        // Make clear color sky blue
+        m_clear_color = {135, 206, 235, 255};
 
-        // std::vector<uint32_t> terrain_indices(terrain_mesh.positions.size());
-        // for (uint32_t i = 0; i < terrain_indices.size(); ++i)
-        //     terrain_indices[i] = i;
+        // Generate terrain
+        rasterizer::mesh_data terrain_mesh = demo::generate_terrain(
+            64,
+            128.0f,
+            {0.0f, 0.0f} // grid_center
+        );
 
-        // // Create terrain transform
-        // rasterizer::transform terrain_transform;
-        // terrain_transform.scale = {1.0f, 1.0f, 1.0f};
-        // terrain_transform.position = {0.0f, 0.0f, 0.0f};
+        std::vector<uint32_t> terrain_indices(terrain_mesh.positions.size());
+        for (uint32_t i = 0; i < terrain_indices.size(); ++i)
+            terrain_indices[i] = i;
 
-        // // Terrrain shader
-        // demo::terrain_shader terrainShader(rasterizer::vector3f{0.0f, 1.0f, 0.0f});
-        // m_shaders.push_back(std::make_unique<demo::terrain_shader>(terrainShader));
+        helper::model_data terrain{terrain_mesh, terrain_indices};
 
-        // m_models.emplace_back(
-        //     terrain_mesh.positions,
-        //     terrain_indices,
-        //     terrain_transform,
-        //     m_shaders[0].get());
+        rasterizer::center_model(terrain);
 
-        return;
+        // Create terrain transform
+        rasterizer::transform terrain_transform;
+        terrain_transform.scale = {1.0f, 1.0f, 1.0f};
+        terrain_transform.position = {0.0f, -15.0f, 0.0f};
+
+        // Terrrain shader
+        demo::terrain_shader terrainShader(rasterizer::vector3f{0.0f, -1.0f, 0.0f});
+        m_shaders.push_back(std::make_unique<demo::terrain_shader>(terrainShader));
+
+        m_models.emplace_back(
+            terrain.mesh,
+            terrain.indices,
+            terrain_transform,
+            m_shaders[0].get());
+
+        active_terrain.emplace_back(
+            m_models.back(),
+            rasterizer::vector2f{0.0f, 0.0f},
+            0,
+            0);
+
+        // Cloud shader
+        // demo::cloud_shader cloud_shader{rasterizer::vector3f{0.0f, -1.0f, 0.0f},
+        //                                 rasterizer::vector3f{1.0f, 1.0f, 1.0f}};
+        // cloud_shader.atmos_col = terrainShader.sky_color;
+        // m_shaders.push_back(std::make_unique<demo::cloud_shader>(cloud_shader));
+
+        // // Create cloud model
+        // helper::model_data cloud_model = helper::load_obj("../resource/model/cloud.obj");
+        // rasterizer::center_model(cloud_model);
+
+        // for (int i = 0; i < 1; ++i)
+        // {
+        //     rasterizer::transform cloud_transform;
+        //     cloud_transform.scale = {3.0f, 3.0f, 3.0f};
+        //     cloud_transform.position = {5.0f + i * 25.0f, 15.0f, 0.0f};
+
+        //     m_models.emplace_back(
+        //         cloud_model.mesh,
+        //         cloud_model.indices,
+        //         cloud_transform,
+        //         m_shaders[1].get());
+        // }
     }
 
+    void demo_engine::render_models()
+    {
+
+        for (auto &model : m_models)
+        {
+            if (!is_model_visible(model, m_camera))
+                continue;
+
+            // Process model
+            process_model(model, m_camera, m_screen);
+
+            model.fill_triangle_data();
+
+            draw_to_pixel_tiled(model, m_depth_buffer, m_color_buffer);
+        }
+    }
+
+    void demo_engine::update_terrain_tiles(const rasterizer::vector3f &camera_pos, float tile_size, int resolution)
+    {
+    }
 }

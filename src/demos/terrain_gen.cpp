@@ -92,9 +92,9 @@ namespace demo
 
         rasterizer::mesh_data out_vertex_data;
 
-        for (int y = 0; y < resolution; y++)
+        for (int y = 0; y < resolution - 1; ++y)
         {
-            for (int x = 0; x < resolution; x++)
+            for (int x = 0; x < resolution - 1; ++x)
             {
                 add_triangle(
                     point_map[x + y * resolution],
