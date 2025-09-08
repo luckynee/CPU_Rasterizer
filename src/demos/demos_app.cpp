@@ -82,29 +82,6 @@ namespace demo
             rasterizer::vector2f{0.0f, 0.0f},
             0,
             0);
-
-        // Cloud shader
-        // demo::cloud_shader cloud_shader{rasterizer::vector3f{0.0f, -1.0f, 0.0f},
-        //                                 rasterizer::vector3f{1.0f, 1.0f, 1.0f}};
-        // cloud_shader.atmos_col = terrainShader.sky_color;
-        // m_shaders.push_back(std::make_unique<demo::cloud_shader>(cloud_shader));
-
-        // // Create cloud model
-        // helper::model_data cloud_model = helper::load_obj("../resource/model/cloud.obj");
-        // rasterizer::center_model(cloud_model);
-
-        // for (int i = 0; i < 1; ++i)
-        // {
-        //     rasterizer::transform cloud_transform;
-        //     cloud_transform.scale = {3.0f, 3.0f, 3.0f};
-        //     cloud_transform.position = {5.0f + i * 25.0f, 15.0f, 0.0f};
-
-        //     m_models.emplace_back(
-        //         cloud_model.mesh,
-        //         cloud_model.indices,
-        //         cloud_transform,
-        //         m_shaders[1].get());
-        // }
     }
 
     void demo_engine::render_models()
