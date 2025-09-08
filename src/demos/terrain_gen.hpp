@@ -73,7 +73,7 @@ namespace demo
 
         rasterizer::vector3f shade(const rasterizer::vector3f &position,
                                    const rasterizer::vector3f &normal,
-                                   const rasterizer::vector2f &tex_coord) const override
+                                   const rasterizer::vector2f &tex_coord [[maybe_unused]]) const override
         {
             rasterizer::vector3f norm = rasterizer::normalized_vector(normal);
             float light_intensity = (rasterizer::dot(norm, light_direction) + 1.0f) * 0.5f;
