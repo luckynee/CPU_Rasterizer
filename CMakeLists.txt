@@ -87,6 +87,7 @@ foreach(target IN LISTS ${PROJECT_NAME} terrain_demo)
         target_compile_options(${target} PRIVATE -O2 -pg -ffast-math)
         target_link_options(${target} PRIVATE -pg)
     endif()
+    
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX)
     else()

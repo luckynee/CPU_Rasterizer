@@ -4,6 +4,8 @@
 #include "core/helper/math.hpp"
 #include "core/shader/shader.hpp"
 
+#include "terrain_gen.hpp"
+
 namespace demo
 {
 
@@ -40,24 +42,31 @@ namespace demo
 
     void demo_engine::setup_models()
     {
-        // Create Shader
-        m_shaders.push_back(std::make_unique<rasterizer::texture_shader>("../resource/textures/uvGrid.bytes"));
+        // // Generate terrain
+        // rasterizer::mesh_data terrain_mesh = demo::generate_terrain(
+        //     128,         // resolution (adjust as needed)
+        //     20.0f,       // world_size (adjust as needed)
+        //     {0.0f, 0.0f} // grid_center
+        // );
 
-        // Load Model
-        helper::model_data loaded_model2 = helper::load_obj("../resource/model/floor.obj");
-        rasterizer::center_model(loaded_model2);
+        // std::vector<uint32_t> terrain_indices(terrain_mesh.positions.size());
+        // for (uint32_t i = 0; i < terrain_indices.size(); ++i)
+        //     terrain_indices[i] = i;
 
-        // Create Transform
-        rasterizer::transform floor_transform;
-        floor_transform.scale = {3.0f, 1.0f, 3.0f};
-        floor_transform.position = {0.0f, -2.0f, 0.0f};
+        // // Create terrain transform
+        // rasterizer::transform terrain_transform;
+        // terrain_transform.scale = {1.0f, 1.0f, 1.0f};
+        // terrain_transform.position = {0.0f, 0.0f, 0.0f};
 
-        // Create Model
-        m_models.emplace_back(
-            loaded_model2.vertices,
-            loaded_model2.indices,
-            floor_transform,
-            nullptr);
+        // // Terrrain shader
+        // demo::terrain_shader terrainShader(rasterizer::vector3f{0.0f, 1.0f, 0.0f});
+        // m_shaders.push_back(std::make_unique<demo::terrain_shader>(terrainShader));
+
+        // m_models.emplace_back(
+        //     terrain_mesh.positions,
+        //     terrain_indices,
+        //     terrain_transform,
+        //     m_shaders[0].get());
 
         return;
     }

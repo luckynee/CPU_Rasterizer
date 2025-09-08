@@ -23,6 +23,7 @@ namespace demo
 
     class terrain_shader : public rasterizer::shader
     {
+    public:
         rasterizer::vector3f light_direction = {0.0f, 0.0f, 0.0f};
         std::vector<float> height = {0.0f, 0.6f, 2.5f, 12.0f};
         rasterizer::vector3f sky_color = {0.6f, 0.8f, 1.0f};
