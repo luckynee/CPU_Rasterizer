@@ -101,7 +101,9 @@ namespace demo
         }
     }
 
-    void demo_engine::update_terrain_tiles(const rasterizer::vector3f &camera_pos, float tile_size, int resolution)
+    void demo_engine::update_terrain_tiles(const rasterizer::vector3f &camera_pos [[maybe_unused]],
+                                           float tile_size [[maybe_unused]],
+                                           int resolution [[maybe_unused]])
     {
     }
 }
