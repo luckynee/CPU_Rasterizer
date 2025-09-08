@@ -37,24 +37,24 @@ endif()
 
 # Main application target
 #add_executable(${PROJECT_NAME} ${MY_SOURCES})
-file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp")
+file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/core_engine/*.cpp")
 
-add_executable(${PROJECT_NAME} src/core/main.cpp ${CORE_SOURCES})
+add_executable(${PROJECT_NAME} src/core_engine/main.cpp ${CORE_SOURCES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/core"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core_engine"
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL_TARGET})
 
 # Demo targets
 file(GLOB_RECURSE TERRAIN_DEMO_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/demos/*.cpp")
-list(REMOVE_ITEM CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/core/main.cpp")
+list(REMOVE_ITEM CORE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/core_engine/main.cpp")
 add_executable(terrain_demo src/demos/demos_main.cpp ${TERRAIN_DEMO_SOURCES} ${CORE_SOURCES})
 
 target_include_directories(terrain_demo PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/core"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core_engine"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/demos"
 )
 target_link_libraries(terrain_demo PRIVATE ${SDL_TARGET})

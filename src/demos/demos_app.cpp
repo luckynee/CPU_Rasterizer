@@ -2,9 +2,9 @@
 
 #include "demos_app.hpp"
 
-#include "core/helper/obj_loader.hpp"
-#include "core/helper/math.hpp"
-#include "core/shader/shader.hpp"
+#include "core_engine/helper/obj_loader.hpp"
+#include "core_engine/helper/math.hpp"
+#include "core_engine/shader/shader.hpp"
 
 #include "terrain_gen.hpp"
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/application/application.hpp"
-#include "core/rasterizer/rasterizer_engine.hpp"
+#include "core_engine/application/application.hpp"
+#include "core_engine/rasterizer/rasterizer_engine.hpp"
 
 namespace demo
 {

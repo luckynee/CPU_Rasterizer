@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/rasterizer/types_math.hpp"
-#include "core/shader/shader.hpp"
-#include "core/helper/math.hpp"
+#include "core_engine/rasterizer/types_math.hpp"
+#include "core_engine/shader/shader.hpp"
+#include "core_engine/helper/math.hpp"
 
 namespace demo
 {
