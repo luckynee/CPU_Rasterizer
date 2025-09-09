@@ -9,7 +9,7 @@
 constexpr int width = 2560;
 constexpr int height = 1440;
 
-int main()
+int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 {
     demo::demo_app app(width, height);
 
