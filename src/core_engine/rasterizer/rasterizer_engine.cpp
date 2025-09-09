@@ -15,6 +15,7 @@ namespace rasterizer
         m_camera.move_camera(m_app->get_delta_time());
     }
 
+    // TODO -> Fix this function to do proper frustum culling
     bool rasterizer_engine::is_model_visible(const model &m, const camera &cam)
     {
         // Compute bounding box in model space
@@ -211,17 +212,21 @@ namespace rasterizer
 
     void main_engine::setup_models()
     {
-        // Create Shader
-        m_shaders.push_back(std::make_unique<texture_shader>("../resource/textures/uvGrid.bytes"));
+        // Load texture from file
+        std::vector<std::uint8_t> texture_bytes = helper::load_bytes_texture("../resource/textures/diffuse.bytes");
+        vector3f light_dir{0.0f, -1.0f, 0.0f};
+        rasterizer::texture my_texture = helper::create_texture_from_bytes(texture_bytes);
+        m_shaders.emplace_back(std::make_unique<lit_texture>(my_texture, light_dir));
 
         // Load Model
-        helper::model_data loaded_model2 = helper::load_obj("../resource/model/floor.obj");
+        helper::model_data loaded_model2 = helper::load_obj("../resource/model/backpack.obj");
         center_model(loaded_model2);
 
         // Create Transform
         transform floor_transform;
-        floor_transform.scale = {3.0f, 1.0f, 3.0f};
-        floor_transform.position = {0.0f, -2.0f, 0.0f};
+        floor_transform.scale = {1.0f, 1.0f, 1.0f};
+        floor_transform.position = {0.0f, 0.0f, 0.0f};
+        floor_transform.yaw = 90.0f;
 
         // Create Model
         m_models.emplace_back(

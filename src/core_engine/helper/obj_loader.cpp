@@ -31,30 +31,35 @@ namespace helper
         if (!part.empty())
             tex_index = std::stoul(part);
 
+        // --- FIX: This line was missing ---
         std::getline(ss, part, '/');
+        if (!part.empty())
+            norm_index = std::stoul(part);
+
+        rasterizer::mesh_data &mesh = out_model_data.mesh;
+
         if (pos_index > 0 && pos_index <= temp_pos.size())
-            out_model_data.mesh.positions.push_back(temp_pos[pos_index - 1]);
+            mesh.positions.push_back(temp_pos[pos_index - 1]);
         else
-            out_model_data.mesh.positions.push_back(rasterizer::vector3f{0, 0, 0}); // fallback
+            mesh.positions.push_back(rasterizer::vector3f{0, 0, 0});
 
-        // Add tex coord
         if (tex_index > 0 && tex_index <= temp_tex.size())
-            out_model_data.mesh.tex_coords.push_back(temp_tex[tex_index - 1]);
+            mesh.tex_coords.push_back(temp_tex[tex_index - 1]);
         else
-            out_model_data.mesh.tex_coords.push_back(rasterizer::vector2f{0, 0}); // fallback
+            mesh.tex_coords.push_back(rasterizer::vector2f{0, 0});
 
-        // Add normal
         if (norm_index > 0 && norm_index <= temp_norm.size())
-            out_model_data.mesh.normals.push_back(temp_norm[norm_index - 1]);
+            mesh.normals.push_back(temp_norm[norm_index - 1]);
         else
-            out_model_data.mesh.normals.push_back(rasterizer::vector3f{0, 0, 1}); // fallback
+            mesh.normals.push_back(rasterizer::vector3f{0, 0, 1});
 
-        unsigned int new_index = out_model_data.mesh.positions.size() - 1;
+        unsigned int new_index = mesh.positions.size() - 1;
         known_vertices[vertex_string] = new_index;
 
         return new_index;
     }
 
+    // ... rest of obj_loader.cpp remains the same
     model_data load_obj(const std::string &filename)
     {
         std::vector<rasterizer::vector3f> temp_pos;
@@ -156,8 +161,8 @@ namespace helper
             for (int x = 0; x < width; ++x)
             {
                 float b = bytes[byte_index + 0] / 255.0f;
-                float r = bytes[byte_index + 1] / 255.0f;
-                float g = bytes[byte_index + 2] / 255.0f;
+                float g = bytes[byte_index + 1] / 255.0f;
+                float r = bytes[byte_index + 2] / 255.0f;
 
                 image_data[y * width + x] = rasterizer::vector3f{r, g, b};
                 byte_index += 3;

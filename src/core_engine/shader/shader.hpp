@@ -76,4 +76,21 @@ namespace rasterizer
             return texture.sample_texture(tex_coord.x * texture_scale, tex_coord.y * texture_scale) * light_intensity;
         }
     };
+
+    class normal_visual_shader : public shader
+    {
+    public:
+        rasterizer::vector3f shade(const rasterizer::vector3f &position,
+                                   const rasterizer::vector3f &normal,
+                                   const rasterizer::vector2f &tex_coord) const override
+        {
+            (void)position;
+            (void)tex_coord;
+            rasterizer::vector3f norm = normalized_vector(normal);
+            return rasterizer::vector3f{
+                (norm.x + 1.0f) * 0.5f,
+                (norm.y + 1.0f) * 0.5f,
+                (norm.z + 1.0f) * 0.5f};
+        }
+    };
 }
