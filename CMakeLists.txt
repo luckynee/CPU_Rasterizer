@@ -88,7 +88,6 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 foreach(tgt ${PROJECT_NAME} terrain_demo)
   if(MSVC)
-    target_compile_options(${tgt} PRIVATE /W4 /WX)
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
       target_compile_options(${tgt} PRIVATE /O2 /fp:fast)
     endif()
@@ -101,7 +100,14 @@ foreach(tgt ${PROJECT_NAME} terrain_demo)
 endforeach()
 
 # This is for ignoring warnings in specific vendor files
-set_source_files_properties(
+if(MSVC)
+    set_source_files_properties(
+        src/demos/vendor/OpenSimplexNoise.cpp
+        PROPERTIES COMPILE_FLAGS "/wd4101 /wd4189"
+    )
+else()
+    set_source_files_properties(
         src/demos/vendor/OpenSimplexNoise.cpp
         PROPERTIES COMPILE_FLAGS "-Wno-unused-but-set-variable -Wno-unused-variable"
-)
+    )
+endif()
