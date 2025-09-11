@@ -86,3 +86,13 @@ This project is configured with CMake and can be built using the command line or
 ## Troubleshooting
 -   If you encounter build errors, ensure your compiler fully supports C++20.
 -   On Windows, the `SDL2.dll` is automatically copied next to the executables. If the program fails to start with a DLL error, clean your build directory and rebuild.
+
+**Note for Windows users:**
+- The project directory path should not contain spaces. MinGW has known issues handling spaces in directory paths, which can cause build failures.
+
+**CMake Build Types:**
+- This project supports three CMake build types: `Debug`, `Release`, and `RelWithDebInfo`.
+- You can specify the build type when configuring CMake, for example:
+  ```
+  cmake -DCMAKE_BUILD_TYPE=Release ...
+  ```
